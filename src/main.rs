@@ -21,18 +21,13 @@ use crate::cli::tag::cmd_tag;
 
 fn main() {
     let args: Arguments = Arguments::parse();
-
-    println!("args: {:?}", args);
-
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
     match &args.command {
         Commands::Add(_) => cmd_add(),
         Commands::CatFile(_) => cmd_cat_file(),
         Commands::Checkout(_) => cmd_checkout(),
         Commands::Commit(_) => cmd_commit(),
         Commands::HashObject(_) => cmd_hash_object(),
-        Commands::Init(_) => cmd_init(),
+        Commands::Init(opts) => cmd_init(opts),
         Commands::Log(_) => cmd_log(),
         Commands::ShowTree(_) => cmd_show_tree(),
         Commands::Merge(_) => cmd_merge(),

@@ -32,28 +32,36 @@ impl Repo {
     /// * `path` - The path to the working tree.
     /// * `force` - If true, the repository will be created even from an invalid
     /// filesystem location.
-    pub fn init(path: &PathBuf, force: Option<bool>) -> Result<Repo, String> {
+    pub fn init(path: &PathBuf, force: Option<bool>) -> Repo {
         // Shadow the force parameter with a default value (false).
         let force: bool = force.unwrap_or(false);
 
         // If we are not forcing creation, the path must exist.
         if !force && !path.exists() {
-            return Err(format!("Not a Git repository {}", path.display()));
+            panic!("Not a Git repository {}", path.display());
         }
 
         // Try to read in the config file inside the `.git` directory.
         let mut config: Option<ConfigParser> = None;
         let git_dir = path.join(".git");
-        let config_file: PathBuf = Repo::repo_file(&git_dir, &["config"], true);
-        if config_file.exists() {
-            match ConfigParser::load_from_file(config_file) {
-                Ok(conf) => config = Some(conf),
-                Err(error) => {
-                    return Err(format!("{}", error));
+        match Repo::repo_file(&git_dir, &["config"], false) {
+            Some(config_file) => {
+                if config_file.exists() {
+                    match ConfigParser::load_from_file(config_file) {
+                        Ok(conf) => config = Some(conf),
+                        Err(error) => {
+                            panic!("{}", error);
+                        }
+                    };
+                } else if !force {
+                    panic!("Configuration file is missing");
                 }
-            };
-        } else if !force {
-            return Err("Configuration file is missing".to_string());
+            }
+            None => {
+                if !force {
+                    panic!("Not a Git repository {}", path.display());
+                }
+            }
         }
 
         // If we are not forcing creation, the `repositoryformatversion`
@@ -63,22 +71,87 @@ impl Repo {
                 if let Some(core) = parser.section(Some("core")) {
                     if let Some(version) = core.get("repositoryformatversion") {
                         if version != "0" {
-                            return Err(format!(
-                                "Unsupported repository format version: {}",
-                                version
-                            ));
+                            panic!("Unsupported repository format version: {}", version);
                         }
                     }
                 };
             } else {
-                return Err("repo config parser invalid".to_string());
+                panic!("repo config parser invalid");
             }
         }
-        Ok(Self {
+        Self {
             git_dir,
             work_tree: path.to_path_buf(),
             config,
-        })
+        }
+    }
+
+    /// Create a new repository.
+    ///
+    /// This will create a new repository at the given path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the repository.
+    pub fn new(path: &PathBuf) -> Repo {
+        let repo: Repo = Repo::init(path, Some(true));
+
+        // First, make sure the path either doesn't exist or is an empty directory.
+        if repo.work_tree.exists() {
+            if !repo.work_tree.is_dir() {
+                panic!("{} is not a directory", repo.work_tree.display());
+            }
+            if repo.work_tree.read_dir().unwrap().count() != 0 {
+                panic!(
+                    "{} is not empty ({:?})",
+                    repo.work_tree.display(),
+                    repo.work_tree
+                        .read_dir()
+                        .unwrap()
+                        .map(|entry| {
+                            let entry = entry.unwrap();
+
+                            let entry_path = entry.path();
+
+                            let file_name = entry_path.file_name().unwrap();
+
+                            let file_name_as_str = file_name.to_str().unwrap();
+
+                            let file_name_as_string = String::from(file_name_as_str);
+
+                            file_name_as_string
+                        })
+                        .collect::<Vec<String>>()
+                );
+            }
+        } else {
+            if !create_dir_all(&repo.work_tree).is_ok() {
+                panic!("failed to create {}", repo.work_tree.display());
+            }
+        }
+
+        // Verify that the repository has been successfully created.
+        Repo::repo_dir(&repo.git_dir, &["branches"], true);
+        Repo::repo_dir(&repo.git_dir, &["objects"], true);
+        Repo::repo_dir(&repo.git_dir, &["refs", "tags"], true);
+        Repo::repo_dir(&repo.git_dir, &["refs", "heads"], true);
+
+        // Write the default `.git/description` file.
+        let data = "Edit this file to name this repository.\n";
+        let path = Repo::repo_file(&repo.git_dir, &["description"], true);
+        Repo::write_to_file(data, &path.unwrap());
+
+        // Write the default `.git/description` file.
+        let data = "ref: refs/heads/master\n";
+        let path = Repo::repo_file(&repo.git_dir, &["HEAD"], true);
+        Repo::write_to_file(data, &path.unwrap());
+
+        // Write the default `.git/config` file.
+        let config = Repo::repo_default_config();
+        let path = Repo::repo_file(&repo.git_dir, &["config"], true);
+        config.write_to_file(path.unwrap()).unwrap();
+
+        return repo;
     }
 
     /// Returns a new PathBuf with the given path appended to the given pathbuf.
@@ -97,24 +170,28 @@ impl Repo {
     /// ```
     /// repo_file(r, "refs", "remotes", "origin", "HEAD")
     /// ```
-    /// will create `.git/refs/remotes/origin/HEAD` if it does not exist.
-    fn repo_file(root: &PathBuf, path: &[&str], mkdir: bool) -> PathBuf {
-        let file_path = Repo::repo_dir(root, path, mkdir);
-        if file_path.exists() {
-            Repo::repo_path(root, path)
-        } else {
-            panic!("{} does not exist", file_path.display());
+    /// will create `.git/refs/remotes/origin` if it does not exist.
+    fn repo_file(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
+        match Repo::repo_dir(root, &path[..path.len() - 1], mkdir) {
+            Some(file_path) => {
+                if file_path.exists() {
+                    Some(Repo::repo_path(root, path))
+                } else {
+                    panic!("{} does not exist", file_path.display());
+                }
+            }
+            None => None,
         }
     }
 
     /// Computes path under repo's git directory, and creates the directory if
     /// it does not exist.
-    fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> PathBuf {
+    fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
         // If the directory does not exist, create it.
         let path = Repo::repo_path(root, path);
         if path.exists() {
             if path.is_dir() {
-                return path;
+                return Some(path);
             } else {
                 panic!("{} is not a directory", path.display());
             }
@@ -123,78 +200,30 @@ impl Repo {
         // The path does not exist; create it if we are allowed to.
         if mkdir {
             create_dir_all(&path).unwrap();
-            return path;
+            return Some(path);
         } else {
-            panic!("{} does not exist", path.display());
-        }
-    }
-}
-
-/// Create a new repository.
-///
-/// This will create a new repository at the given path.
-///
-/// # Arguments
-///
-/// * `path` - The path to the repository.
-pub fn create(path: &PathBuf) -> Repo {
-    let repo: Repo = Repo::init(path, None).unwrap();
-
-    // First, make sure the path either doesn't exist or is an empty directory.
-    if repo.work_tree.exists() {
-        if !repo.work_tree.is_dir() {
-            panic!("{} is not a directory", repo.work_tree.display());
-        }
-        if repo.work_tree.read_dir().unwrap().count() != 0 {
-            panic!("{} is not empty", repo.work_tree.display());
-        }
-    } else {
-        if !create_dir_all(&repo.work_tree).is_ok() {
-            panic!("failed to create {}", repo.work_tree.display());
+            return None;
         }
     }
 
-    // Verify that the repository has been successfully created.
-    Repo::repo_dir(&repo.git_dir, &["branches"], true);
-    Repo::repo_dir(&repo.git_dir, &["objects"], true);
-    Repo::repo_dir(&repo.git_dir, &["refs", "tags"], true);
-    Repo::repo_dir(&repo.git_dir, &["refs", "heads"], true);
-
-    // Write the default `.git/description` file.
-    let data = "Edit this file to name this repository.\n";
-    let path = Repo::repo_file(&repo.git_dir, &["description"], true);
-    write_to_file(data, &path);
-
-    // Write the default `.git/description` file.
-    let data = "ref: refs/heads/master\n";
-    let path = Repo::repo_file(&repo.git_dir, &["HEAD"], true);
-    write_to_file(data, &path);
-
-    // Write the default `.git/config` file.
-    let config = repo_default_config();
-    let path = Repo::repo_file(&repo.git_dir, &["config"], true);
-    config.write_to_file(path).unwrap();
-
-    return repo;
-}
-
-/// Write the given data to the given path. Panic on error.
-fn write_to_file(data: &str, path: &PathBuf) {
-    match File::create(path) {
-        Ok(mut f) => match f.write_all(data.as_bytes()) {
-            Ok(_) => (),
-            Err(_) => panic!("unable to write data"),
-        },
-        Err(_) => panic!("unable to create file"),
+    /// Write the given data to the given path. Panic on error.
+    fn write_to_file(data: &str, path: &PathBuf) {
+        match File::create(path) {
+            Ok(mut f) => match f.write_all(data.as_bytes()) {
+                Ok(_) => (),
+                Err(_) => panic!("unable to write data"),
+            },
+            Err(_) => panic!("unable to create file"),
+        }
     }
-}
 
-/// Builds up a default configuration for a new repository.
-fn repo_default_config() -> ConfigParser {
-    let mut conf = ConfigParser::new();
-    conf.with_section(Some("core"))
-        .set("repositoryformatversion", "0") // use the initial gitdir format
-        .set("filemode", "false") // don't track file mode changes in worktree
-        .set("bare", "false"); // indicates this repo has a worktree
-    conf
+    /// Builds up a default configuration for a new repository.
+    fn repo_default_config() -> ConfigParser {
+        let mut conf = ConfigParser::new();
+        conf.with_section(Some("core"))
+            .set("repositoryformatversion", "0") // use the initial gitdir format
+            .set("filemode", "false") // don't track file mode changes in worktree
+            .set("bare", "false"); // indicates this repo has a worktree
+        conf
+    }
 }

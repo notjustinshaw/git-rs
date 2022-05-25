@@ -1,10 +1,15 @@
+use std::path::PathBuf;
+
+use crate::repo::Repo;
 use clap::Args;
 
 #[derive(Args, Debug)]
 pub struct Init {
-    pub name: Option<String>,
+    /// Where to create the repository.
+    #[clap(default_value_t = String::from("."))]
+    pub path: String,
 }
 
-pub fn cmd_init() {
-    todo!("cmd_init");
+pub fn cmd_init(opts: &Init) {
+    Repo::new(&PathBuf::from(&opts.path));
 }
