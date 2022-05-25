@@ -7,5 +7,4 @@ pub struct Checkout {
 
 pub fn cmd_checkout() {
     todo!("cmd_checkout");
-  }
-  
+}

@@ -1,7 +1,8 @@
-mod cli;
+pub mod cli;
+pub mod repo;
 
-use clap::Parser;
 use self::cli::{Arguments, Commands};
+use clap::Parser;
 
 use crate::cli::add::cmd_add;
 use crate::cli::cat_file::cmd_cat_file;
@@ -13,11 +14,10 @@ use crate::cli::log::cmd_log;
 use crate::cli::merge::cmd_merge;
 use crate::cli::rebase::cmd_rebase;
 use crate::cli::rev_parse::cmd_rev_parse;
-use crate::cli::show_ref::cmd_show_ref;
 use crate::cli::rm::cmd_rm;
+use crate::cli::show_ref::cmd_show_ref;
 use crate::cli::show_tree::cmd_show_tree;
 use crate::cli::tag::cmd_tag;
-
 
 fn main() {
     let args: Arguments = Arguments::parse();
