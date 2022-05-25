@@ -154,6 +154,26 @@ impl Repo {
         return repo;
     }
 
+    pub fn repo_find(path: &PathBuf, required: bool) -> Option<Repo> {
+        let path = path.canonicalize().unwrap();
+
+        // If the path has a `.git` directory, we are done.
+        if path.join(".git").is_dir() {
+            return Some(Repo::new(&path));
+        }
+
+        // Otherwise, we need to walk up the directory tree.
+        let parent = path.parent().unwrap().to_path_buf();
+        if parent == path {
+            if required {
+                panic!("Not a Git repository {}", path.display());
+            } else {
+                return None;
+            }
+        }
+        return Repo::repo_find(&parent, required);
+    }
+
     /// Returns a new PathBuf with the given path appended to the given pathbuf.
     fn repo_path(git_dir: &PathBuf, paths: &[&str]) -> PathBuf {
         let mut result = git_dir.clone();
