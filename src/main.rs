@@ -1,5 +1,7 @@
 pub mod cli;
 pub mod repo;
+mod object;
+mod crypto;
 
 use self::cli::{Arguments, Commands};
 use clap::Parser;

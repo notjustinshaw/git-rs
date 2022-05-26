@@ -32,34 +32,29 @@ impl Repo {
     /// * `path` - The path to the working tree.
     /// * `force` - If true, the repository will be created even from an invalid
     /// filesystem location.
-    pub fn init(path: &PathBuf, force: Option<bool>) -> Repo {
-        // Shadow the force parameter with a default value (false).
-        let force: bool = force.unwrap_or(false);
-
+    pub fn init(path: &PathBuf, force: bool) -> Result<Repo, String> {
         // If we are not forcing creation, the path must exist.
         if !force && !path.exists() {
-            panic!("Not a Git repository {}", path.display());
+            return Err(format!("{} does not exist.", path.display()));
         }
 
         // Try to read in the config file inside the `.git` directory.
         let mut config: Option<ConfigParser> = None;
         let git_dir = path.join(".git");
-        match Repo::repo_file(&git_dir, &["config"], false) {
+        match repo_file(&git_dir, &["config"], false) {
             Some(config_file) => {
                 if config_file.exists() {
                     match ConfigParser::load_from_file(config_file) {
                         Ok(conf) => config = Some(conf),
-                        Err(error) => {
-                            panic!("{}", error);
-                        }
+                        Err(error) => return Err(error.to_string()),
                     };
                 } else if !force {
-                    panic!("Configuration file is missing");
+                    return Err(format!("Configuration file is missing."));
                 }
             }
             None => {
                 if !force {
-                    panic!("Not a Git repository {}", path.display());
+                    return Err(format!("{} is not a git repository.", path.display()));
                 }
             }
         }
@@ -71,19 +66,22 @@ impl Repo {
                 if let Some(core) = parser.section(Some("core")) {
                     if let Some(version) = core.get("repositoryformatversion") {
                         if version != "0" {
-                            panic!("Unsupported repository format version: {}", version);
+                            return Err(format!(
+                                "Unsupported repository format version: {}",
+                                version
+                            ));
                         }
                     }
                 };
             } else {
-                panic!("repo config parser invalid");
+                return Err("repo config parser invalid".to_string());
             }
         }
-        Self {
+        Ok(Self {
             git_dir,
             work_tree: path.to_path_buf(),
             config,
-        }
+        })
     }
 
     /// Create a new repository.
@@ -93,136 +91,74 @@ impl Repo {
     /// # Arguments
     ///
     /// * `path` - The path to the repository.
-    pub fn new(path: &PathBuf) -> Repo {
-        let repo: Repo = Repo::init(path, Some(true));
+    pub fn new(path: &PathBuf) -> Result<Repo, String> {
+        match Repo::init(path, true) {
+            Ok(repo) => {
+                // First, make sure the path either doesn't exist or is an empty directory.
+                if repo.work_tree.exists() {
+                    let dir = repo.work_tree.display();
+                    if !repo.work_tree.is_dir() {
+                        return Err(format!("{} is not a directory", dir));
+                    }
+                    if repo.work_tree.read_dir().unwrap().count() != 0 {
+                        return Err(format!("{} is not empty", dir));
+                    }
+                } else {
+                    if !create_dir_all(&repo.work_tree).is_ok() {
+                        panic!("failed to create {}", repo.work_tree.display());
+                    }
+                }
 
-        // First, make sure the path either doesn't exist or is an empty directory.
-        if repo.work_tree.exists() {
-            if !repo.work_tree.is_dir() {
-                panic!("{} is not a directory", repo.work_tree.display());
+                // Verify that the repository has been successfully created.
+                repo_dir(&repo.git_dir, &["branches"], true);
+                repo_dir(&repo.git_dir, &["objects"], true);
+                repo_dir(&repo.git_dir, &["refs", "tags"], true);
+                repo_dir(&repo.git_dir, &["refs", "heads"], true);
+
+                // Write the default `.git/description` file.
+                let data = "Edit this file to name this repository.\n";
+                let path = repo_file(&repo.git_dir, &["description"], true);
+                Repo::write_to_file(data, &path.unwrap());
+
+                // Write the default `.git/description` file.
+                let data = "ref: refs/heads/master\n";
+                let path = repo_file(&repo.git_dir, &["HEAD"], true);
+                Repo::write_to_file(data, &path.unwrap());
+
+                // Write the default `.git/config` file.
+                let config = Repo::repo_default_config();
+                let path = repo_file(&repo.git_dir, &["config"], true);
+                config.write_to_file(path.unwrap()).unwrap();
+
+                return Ok(repo);
             }
-            if repo.work_tree.read_dir().unwrap().count() != 0 {
-                panic!(
-                    "{} is not empty ({:?})",
-                    repo.work_tree.display(),
-                    repo.work_tree
-                        .read_dir()
-                        .unwrap()
-                        .map(|entry| {
-                            let entry = entry.unwrap();
-
-                            let entry_path = entry.path();
-
-                            let file_name = entry_path.file_name().unwrap();
-
-                            let file_name_as_str = file_name.to_str().unwrap();
-
-                            let file_name_as_string = String::from(file_name_as_str);
-
-                            file_name_as_string
-                        })
-                        .collect::<Vec<String>>()
-                );
-            }
-        } else {
-            if !create_dir_all(&repo.work_tree).is_ok() {
-                panic!("failed to create {}", repo.work_tree.display());
-            }
+            Err(error) => return Err(error),
         }
-
-        // Verify that the repository has been successfully created.
-        Repo::repo_dir(&repo.git_dir, &["branches"], true);
-        Repo::repo_dir(&repo.git_dir, &["objects"], true);
-        Repo::repo_dir(&repo.git_dir, &["refs", "tags"], true);
-        Repo::repo_dir(&repo.git_dir, &["refs", "heads"], true);
-
-        // Write the default `.git/description` file.
-        let data = "Edit this file to name this repository.\n";
-        let path = Repo::repo_file(&repo.git_dir, &["description"], true);
-        Repo::write_to_file(data, &path.unwrap());
-
-        // Write the default `.git/description` file.
-        let data = "ref: refs/heads/master\n";
-        let path = Repo::repo_file(&repo.git_dir, &["HEAD"], true);
-        Repo::write_to_file(data, &path.unwrap());
-
-        // Write the default `.git/config` file.
-        let config = Repo::repo_default_config();
-        let path = Repo::repo_file(&repo.git_dir, &["config"], true);
-        config.write_to_file(path.unwrap()).unwrap();
-
-        return repo;
     }
 
-    pub fn repo_find(path: &PathBuf, required: bool) -> Option<Repo> {
+    /// Walk up the directory tree to find the root of the repository (`.git`).
+    pub fn find_repo(path: &PathBuf, required: bool) -> Result<Option<Repo>, String> {
+        // Shadow the path parameter with its absolute path.
         let path = path.canonicalize().unwrap();
 
         // If the path has a `.git` directory, we are done.
         if path.join(".git").is_dir() {
-            return Some(Repo::new(&path));
+            match Repo::new(&path) {
+                Ok(repo) => return Ok(Some(repo)),
+                Err(error) => return Err(error),
+            }
         }
 
         // Otherwise, we need to walk up the directory tree.
-        let parent = path.parent().unwrap().to_path_buf();
-        if parent == path {
-            if required {
-                panic!("Not a Git repository {}", path.display());
-            } else {
-                return None;
-            }
-        }
-        return Repo::repo_find(&parent, required);
-    }
-
-    /// Returns a new PathBuf with the given path appended to the given pathbuf.
-    fn repo_path(git_dir: &PathBuf, paths: &[&str]) -> PathBuf {
-        let mut result = git_dir.clone();
-        for path in paths.into_iter() {
-            result.push(path);
-        }
-        result
-    }
-
-    /// Computes path under repo's git directory, and creates the directory if
-    /// it does not exist.
-    ///
-    /// # Examples
-    /// ```
-    /// repo_file(r, "refs", "remotes", "origin", "HEAD")
-    /// ```
-    /// will create `.git/refs/remotes/origin` if it does not exist.
-    fn repo_file(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
-        match Repo::repo_dir(root, &path[..path.len() - 1], mkdir) {
-            Some(file_path) => {
-                if file_path.exists() {
-                    Some(Repo::repo_path(root, path))
+        match path.parent() {
+            Some(parent) => return Repo::find_repo(&parent.to_path_buf(), required),
+            None => {
+                if required {
+                    return Err("Could not find a git directory".to_string());
                 } else {
-                    panic!("{} does not exist", file_path.display());
+                    return Ok(None);
                 }
             }
-            None => None,
-        }
-    }
-
-    /// Computes path under repo's git directory, and creates the directory if
-    /// it does not exist.
-    fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
-        // If the directory does not exist, create it.
-        let path = Repo::repo_path(root, path);
-        if path.exists() {
-            if path.is_dir() {
-                return Some(path);
-            } else {
-                panic!("{} is not a directory", path.display());
-            }
-        }
-
-        // The path does not exist; create it if we are allowed to.
-        if mkdir {
-            create_dir_all(&path).unwrap();
-            return Some(path);
-        } else {
-            return None;
         }
     }
 
@@ -245,5 +181,55 @@ impl Repo {
             .set("filemode", "false") // don't track file mode changes in worktree
             .set("bare", "false"); // indicates this repo has a worktree
         conf
+    }
+}
+
+/// Returns a new PathBuf with the given path appended to the given pathbuf.
+fn repo_path(git_dir: &PathBuf, paths: &[&str]) -> PathBuf {
+    let mut new_path = git_dir.clone();
+    new_path.extend(paths.into_iter());
+    return new_path;
+}
+
+/// Computes path under repo's git directory, and creates the directory if
+/// it does not exist.
+///
+/// # Examples
+/// ```
+/// repo_file(r, "refs", "remotes", "origin", "HEAD")
+/// ```
+/// will create `.git/refs/remotes/origin` if it does not exist.
+pub fn repo_file(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
+    match repo_dir(root, &path[..path.len() - 1], mkdir) {
+        Some(file_path) => {
+            if file_path.exists() {
+                Some(repo_path(root, path))
+            } else {
+                panic!("{} does not exist", file_path.display());
+            }
+        }
+        None => None,
+    }
+}
+
+/// Computes path under repo's git directory, and creates the directory if
+/// it does not exist.
+fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
+    // If the directory does not exist, create it.
+    let path = repo_path(root, path);
+    if path.exists() {
+        if path.is_dir() {
+            return Some(path);
+        } else {
+            panic!("{} is not a directory", path.display());
+        }
+    }
+
+    // The path does not exist; create it if we are allowed to.
+    if mkdir {
+        create_dir_all(&path).unwrap();
+        return Some(path);
+    } else {
+        return None;
     }
 }

@@ -11,5 +11,15 @@ pub struct Init {
 }
 
 pub fn cmd_init(opts: &Init) {
-    Repo::new(&PathBuf::from(&opts.path));
+    match Repo::new(&PathBuf::from(&opts.path)) {
+        Ok(repo) => {
+            println!(
+                "Initialized empty Git repository in {}",
+                repo.work_tree.display()
+            );
+        }
+        Err(error) => {
+            println!("{}", error);
+        }
+    }
 }
