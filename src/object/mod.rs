@@ -1,12 +1,12 @@
+mod blob;
+mod serializable;
+
 use crate::crypto;
+use crate::object::blob::Blob;
+use crate::object::serializable::Serializable;
 use crate::repo::{repo_file, Repo};
 use std::fs::{self, File};
 use std::io::prelude::*;
-
-trait Serializable {
-    fn serialize(&self) -> &[u8];
-    fn deserialize(&self, data: &str);
-}
 
 /// A git object.
 ///
@@ -38,24 +38,42 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(repo: Repo, data: &str) -> Self {
-        unimplemented!();
+    pub fn new(repo: Repo, format: &str) -> Self {
+        Self {
+            repo,
+            format: format.to_string(),
+        }
     }
 }
 
 impl Serializable for Object {
+    type ImplType = Self;
+
     fn serialize(&self) -> &[u8] {
         unimplemented!();
     }
 
-    fn deserialize(&self, data: &str) {
+    fn deserialize(&mut self, _data: &str) {
         unimplemented!();
     }
+
+    fn get_format(&self) -> &str {
+        self.format.as_str()
+    }
+
+    fn get_repo(&self) -> &Repo {
+        &self.repo
+    }
+}
+
+pub enum GitObject {
+    Blob(Blob),
+    Object(Object),
 }
 
 /// Reads object object_id from the repository repo and returns an object
 /// whose exact type depends on the object read from memory.
-pub fn read(repo: Repo, hash: &str) -> Result<Object, String> {
+pub fn read(repo: Repo, hash: &str) -> Result<GitObject, String> {
     let directories = ["objects", &hash[0..2], &hash[2..]];
     let path = repo_file(&repo.git_dir, &directories, false);
     if let Ok(file) = fs::read(path.unwrap()) {
@@ -74,10 +92,10 @@ pub fn read(repo: Repo, hash: &str) -> Result<Object, String> {
         }
 
         match object_type {
-            "blob" => Ok(Object::new(repo, &raw[null_byte + 1..])),
-            "commit" => Ok(Object::new(repo, &raw[null_byte + 1..])),
-            "tag" => Ok(Object::new(repo, &raw[null_byte + 1..])),
-            "tree" => Ok(Object::new(repo, &raw[null_byte + 1..])),
+            "blob" => Ok(GitObject::Blob(Blob::new(repo, &raw[null_byte + 1..]))),
+            "commit" => Ok(GitObject::Object(Object::new(repo, "commit"))),
+            "tag" => Ok(GitObject::Object(Object::new(repo, "tag"))),
+            "tree" => Ok(GitObject::Object(Object::new(repo, "tree"))),
             _ => Err("Object type not supported.".to_string()),
         }
     } else {
@@ -90,15 +108,15 @@ pub fn read(repo: Repo, hash: &str) -> Result<Object, String> {
 /// The object is written to the repository that the object represents. If the
 /// dry_run flag is set to true, the hash will be calculated but not written
 /// to the directory.
-pub fn write(object: &Object, dry_run: bool) -> Result<String, String> {
+pub fn write<T: Serializable>(object: &T, dry_run: bool) -> Result<String, String> {
     let payload = object.serialize();
-    let header = format!("{} {}\0", object.format, payload.len());
+    let header = format!("{} {}\0", object.get_format(), payload.len());
     let data = [header.as_bytes(), payload].concat();
     let hash = crypto::sha_1(&data);
 
     if !dry_run {
         let directories = ["objects", &hash[0..2], &hash[2..]];
-        let path = repo_file(&object.repo.git_dir, &directories, true);
+        let path = repo_file(&object.get_repo().git_dir, &directories, true);
         let mut file = File::create(path.unwrap()).unwrap();
         let compressed_data = crypto::compress(&data)?;
         file.write_all(&compressed_data[..]).unwrap();
