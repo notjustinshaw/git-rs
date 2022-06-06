@@ -38,51 +38,51 @@ use tag::Tag;
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None, propagate_version = true)]
 pub struct Arguments {
-    #[clap(subcommand)]
-    pub command: Command,
+  #[clap(subcommand)]
+  pub command: Command,
 }
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Add file contents to the index.
-    Add(Add),
+  /// Add file contents to the index.
+  Add(Add),
 
-    /// Provide content or type and size information for repository objects.
-    CatFile(CatFile),
+  /// Provide content or type and size information for repository objects.
+  CatFile(CatFile),
 
-    /// Switch branches or restore working tree files.
-    Checkout(Checkout),
+  /// Switch branches or restore working tree files.
+  Checkout(Checkout),
 
-    /// Record changes to the repository.
-    Commit(Commit),
+  /// Record changes to the repository.
+  Commit(Commit),
 
-    /// Compute object ID and optionally creates a blob from a file.
-    HashObject(HashObject),
+  /// Compute object ID and optionally creates a blob from a file.
+  HashObject(HashObject),
 
-    /// Create an empty Git repository or reinitialize an existing one.
-    Init(Init),
+  /// Create an empty Git repository or reinitialize an existing one.
+  Init(Init),
 
-    /// Show commit logs.
-    Log(Log),
+  /// Show commit logs.
+  Log(Log),
 
-    /// List the contents of a tree object.
-    ShowTree(ShowTree),
+  /// List the contents of a tree object.
+  ShowTree(ShowTree),
 
-    /// Join two or more development histories together.
-    Merge(Merge),
+  /// Join two or more development histories together.
+  Merge(Merge),
 
-    /// Reapply commits on top of another base tip.
-    Rebase(Rebase),
+  /// Reapply commits on top of another base tip.
+  Rebase(Rebase),
 
-    /// Pick out and massage parameters.
-    RevParse(RevParse),
+  /// Pick out and massage parameters.
+  RevParse(RevParse),
 
-    /// Remove files from the working tree and from the index.
-    Rm(Rm),
+  /// Remove files from the working tree and from the index.
+  Rm(Rm),
 
-    /// List references in a local repository.
-    ShowRef(ShowRef),
+  /// List references in a local repository.
+  ShowRef(ShowRef),
 
-    /// Create, list, delete or verify a tag object signed with GPG.
-    Tag(Tag),
+  /// Create, list, delete or verify a tag object signed with GPG.
+  Tag(Tag),
 }

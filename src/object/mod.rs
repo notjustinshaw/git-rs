@@ -1,5 +1,5 @@
 pub(crate) mod blob;
-mod object;
+pub(crate) mod object;
 pub(crate) mod serializable;
 
 use crate::crypto;
@@ -39,36 +39,36 @@ use self::object::Object;
 /// Reads object object_id from the repository repo and returns an object
 /// whose exact type depends on the object read from memory.
 pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializable>, String> {
-    let directories = ["objects", &hash[0..2], &hash[2..]];
-    let path = repo_file(&repo.git_dir, &directories, false);
-    if let Ok(file) = fs::read(path.unwrap()) {
-        let raw = crypto::decompress(&file)?;
+  let directories = ["objects", &hash[0..2], &hash[2..]];
+  let path = repo_file(&repo.git_dir, &directories, false);
+  if let Ok(file) = fs::read(path.unwrap()) {
+    let raw = crypto::decompress(&file)?;
 
-        // Read the object type
-        let first_space: usize = raw.find(' ').unwrap();
-        let object_type: &str = &raw[0..first_space];
-        if object_type != typename {
-            return Err(format!("fatal: invalid object type \"{}\"", typename));
-        }
-
-        // Read and validate the object size
-        let null_byte: usize = raw.find('\0').unwrap();
-        let object_size: usize = raw[first_space + 1..null_byte].parse::<usize>().unwrap();
-
-        if object_size != raw.len() - null_byte - 1 {
-            return Err(format!("fatal: size does not match size of raw data"));
-        }
-
-        match object_type {
-            "blob" => Ok(Box::new(Blob::new(repo, &raw[null_byte + 1..]))),
-            "commit" => Ok(Box::new(Object::new(repo, "commit"))),
-            "tag" => Ok(Box::new(Object::new(repo, "tag"))),
-            "tree" => Ok(Box::new(Object::new(repo, "tree"))),
-            _ => Err(format!("fatal: unsupported type \"{}\"", object_type)),
-        }
-    } else {
-        Err(format!("fatal: object not found"))
+    // Read the object type
+    let first_space: usize = raw.find(' ').unwrap();
+    let object_type: &str = &raw[0..first_space];
+    if object_type != typename {
+      return Err(format!("fatal: invalid object type \"{}\"", typename));
     }
+
+    // Read and validate the object size
+    let null_byte: usize = raw.find('\0').unwrap();
+    let object_size: usize = raw[first_space + 1..null_byte].parse::<usize>().unwrap();
+
+    if object_size != raw.len() - null_byte - 1 {
+      return Err(format!("fatal: size does not match size of raw data"));
+    }
+
+    match object_type {
+      "blob" => Ok(Box::new(Blob::new(repo, &raw[null_byte + 1..]))),
+      "commit" => Ok(Box::new(Object::new(repo, "commit"))),
+      "tag" => Ok(Box::new(Object::new(repo, "tag"))),
+      "tree" => Ok(Box::new(Object::new(repo, "tree"))),
+      _ => Err(format!("unsupported type \"{}\"", object_type)),
+    }
+  } else {
+    Err(format!("fatal: object not found"))
+  }
 }
 
 /// Writes an object to the repository.
@@ -76,25 +76,24 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
 /// The object is written to the repository that the object represents. If the
 /// dry_run flag is set to true, the hash will be calculated but not written
 /// to the directory.
-#[allow(dead_code)]
-pub fn write<T: Serializable>(object: &T, dry_run: bool) -> Result<String, String> {
-    let payload = object.serialize();
-    let header = format!("{} {}\0", object.get_format(), payload.len());
-    let data = [header.as_bytes(), payload].concat();
-    let hash = crypto::sha_1(&data);
+pub fn write(object: &Box<dyn Serializable>, dry_run: bool) -> Result<String, String> {
+  let payload = object.serialize();
+  let header = format!("{} {}\0", object.get_format(), payload.len());
+  let data = [header.as_bytes(), payload].concat();
+  let hash = crypto::sha_1(&data);
 
-    if !dry_run {
-        let directories = ["objects", &hash[0..2], &hash[2..]];
-        let path = repo_file(&object.get_repo().git_dir, &directories, true);
-        let mut file = File::create(path.unwrap()).unwrap();
-        let compressed_data = crypto::compress(&data)?;
-        file.write_all(&compressed_data[..]).unwrap();
-    }
-    return Ok(hash);
+  if !dry_run {
+    let directories = ["objects", &hash[0..2], &hash[2..]];
+    let path = repo_file(&object.get_repo().git_dir, &directories, true);
+    let mut file = File::create(path.unwrap()).unwrap();
+    let compressed_data = crypto::compress(&data)?;
+    file.write_all(&compressed_data[..]).unwrap();
+  }
+  return Ok(hash);
 }
 
 /// Finds object.
 #[allow(dead_code)]
 fn find_object<'a>(_repo: Repo, name: &'a str, _type: Option<&str>, _follow: bool) -> &'a str {
-    return name;
+  return name;
 }
