@@ -39,11 +39,11 @@ use tag::Tag;
 #[clap(author, version, about, long_about = None, propagate_version = true)]
 pub struct Arguments {
     #[clap(subcommand)]
-    pub command: Commands,
+    pub command: Command,
 }
 
 #[derive(Debug, Subcommand)]
-pub enum Commands {
+pub enum Command {
     /// Add file contents to the index.
     Add(Add),
 

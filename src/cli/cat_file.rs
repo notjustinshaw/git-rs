@@ -14,21 +14,22 @@ pub struct CatFile {
     pub object: String,
 }
 
-pub fn cmd_cat_file(opts: &CatFile) {
-    let repo = match Repo::find_repo(&PathBuf::from("."), true) {
-        Ok(repo) => repo,
-        Err(error) => {
-            println!("Repository not found.");
-            println!("{}", error.to_string());
-            return;
-        }
-    };
-    match read(repo.unwrap(), &opts.object, &opts.typename) {
-        Ok(gob) => {
-            println!("{}", String::from_utf8_lossy(gob.serialize()).to_string());
-        }
-        Err(error) => {
-            println!("{}", error);
-        }
+
+/// Prints a compressed object file.
+/// 
+/// Looks in the git directory for an object file with the given object hash. If
+/// found, try to uncompress it and parse the payload data.
+/// 
+/// # Example
+/// ```bash
+/// $ git cat-file blob 00a534409c6fe1acb2cf24f17d101a4d0016c3f5
+/// ```
+pub fn cmd_cat_file(opts: &CatFile) -> Result<(), String> {
+    if let Some(repo) = Repo::find_repo(&PathBuf::from("."), true)? {
+        let gob = read(repo, &opts.object, &opts.typename)?;
+        println!("{}", String::from_utf8_lossy(gob.serialize()).to_string());
+        Ok(())
+    } else {
+        Err(format!("repository not found"))
     }
 }

@@ -5,6 +5,6 @@ pub struct Commit {
     pub name: Option<String>,
 }
 
-pub fn cmd_commit() {
+pub fn cmd_commit() -> Result<(), String> {
     todo!("cmd_commit");
 }

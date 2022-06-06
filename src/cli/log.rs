@@ -5,6 +5,6 @@ pub struct Log {
     pub name: Option<String>,
 }
 
-pub fn cmd_log() {
+pub fn cmd_log() -> Result<(), String> {
     todo!("cmd_log");
 }

@@ -5,6 +5,6 @@ pub struct Checkout {
     pub name: Option<String>,
 }
 
-pub fn cmd_checkout() {
+pub fn cmd_checkout() -> Result<(), String> {
     todo!("cmd_checkout");
 }

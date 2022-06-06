@@ -10,16 +10,9 @@ pub struct Init {
     pub path: String,
 }
 
-pub fn cmd_init(opts: &Init) {
-    match Repo::new(&PathBuf::from(&opts.path)) {
-        Ok(repo) => {
-            println!(
-                "Initialized empty Git repository in {}",
-                repo.work_tree.canonicalize().unwrap().display()
-            );
-        }
-        Err(error) => {
-            println!("{}", error);
-        }
-    }
+pub fn cmd_init(opts: &Init) -> Result<(), String> {
+    let repo: Repo = Repo::new(&PathBuf::from(&opts.path))?;
+    let path: PathBuf = repo.work_tree.canonicalize().unwrap();
+    println!("Initialized empty Git repository in {}", path.display());
+    Ok(())
 }

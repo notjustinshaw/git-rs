@@ -5,6 +5,6 @@ pub struct Rm {
     pub name: Option<String>,
 }
 
-pub fn cmd_rm() {
+pub fn cmd_rm() -> Result<(), String> {
     todo!("cmd_rm");
 }
