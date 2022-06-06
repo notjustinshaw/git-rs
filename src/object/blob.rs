@@ -17,8 +17,6 @@ impl Blob {
 }
 
 impl Serializable for Blob {
-    type ImplType = Self;
-
     fn serialize(&self) -> &[u8] {
         return &self.data;
     }

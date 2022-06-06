@@ -1,5 +1,6 @@
-mod blob;
-mod serializable;
+pub(crate) mod blob;
+mod object;
+pub(crate) mod serializable;
 
 use crate::crypto;
 use crate::object::blob::Blob;
@@ -7,6 +8,8 @@ use crate::object::serializable::Serializable;
 use crate::repo::{repo_file, Repo};
 use std::fs::{self, File};
 use std::io::prelude::*;
+
+use self::object::Object;
 
 /// A git object.
 ///
@@ -32,48 +35,10 @@ use std::io::prelude::*;
 /// `tag` or `tree`. This header is followed by an ASCII space (0x20), then the
 /// size of the object in bytes as an ASCII number, then null (0x00) (the null
 /// byte), then the contents of the object.
-pub struct Object {
-    pub repo: Repo,
-    pub format: String,
-}
-
-impl Object {
-    pub fn new(repo: Repo, format: &str) -> Self {
-        Self {
-            repo,
-            format: format.to_string(),
-        }
-    }
-}
-
-impl Serializable for Object {
-    type ImplType = Self;
-
-    fn serialize(&self) -> &[u8] {
-        unimplemented!();
-    }
-
-    fn deserialize(&mut self, _data: &str) {
-        unimplemented!();
-    }
-
-    fn get_format(&self) -> &str {
-        self.format.as_str()
-    }
-
-    fn get_repo(&self) -> &Repo {
-        &self.repo
-    }
-}
-
-pub enum GitObject {
-    Blob(Blob),
-    Object(Object),
-}
 
 /// Reads object object_id from the repository repo and returns an object
 /// whose exact type depends on the object read from memory.
-pub fn read(repo: Repo, hash: &str) -> Result<GitObject, String> {
+pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializable>, String> {
     let directories = ["objects", &hash[0..2], &hash[2..]];
     let path = repo_file(&repo.git_dir, &directories, false);
     if let Ok(file) = fs::read(path.unwrap()) {
@@ -82,24 +47,27 @@ pub fn read(repo: Repo, hash: &str) -> Result<GitObject, String> {
         // Read the object type
         let first_space: usize = raw.find(' ').unwrap();
         let object_type: &str = &raw[0..first_space];
+        if object_type != typename {
+            return Err(format!("fatal: invalid object type \"{}\"", typename));
+        }
 
         // Read and validate the object size
-        let null_byte: usize = raw[first_space..].find('\0').unwrap();
-        let object_size: usize = raw[first_space..null_byte].parse::<usize>().unwrap();
+        let null_byte: usize = raw.find('\0').unwrap();
+        let object_size: usize = raw[first_space + 1..null_byte].parse::<usize>().unwrap();
 
         if object_size != raw.len() - null_byte - 1 {
-            return Err("Object size does not match the size of the raw data.".to_string());
+            return Err(format!("fatal: size does not match size of raw data"));
         }
 
         match object_type {
-            "blob" => Ok(GitObject::Blob(Blob::new(repo, &raw[null_byte + 1..]))),
-            "commit" => Ok(GitObject::Object(Object::new(repo, "commit"))),
-            "tag" => Ok(GitObject::Object(Object::new(repo, "tag"))),
-            "tree" => Ok(GitObject::Object(Object::new(repo, "tree"))),
-            _ => Err("Object type not supported.".to_string()),
+            "blob" => Ok(Box::new(Blob::new(repo, &raw[null_byte + 1..]))),
+            "commit" => Ok(Box::new(Object::new(repo, "commit"))),
+            "tag" => Ok(Box::new(Object::new(repo, "tag"))),
+            "tree" => Ok(Box::new(Object::new(repo, "tree"))),
+            _ => Err(format!("fatal: unsupported type \"{}\"", object_type)),
         }
     } else {
-        Err("Object not found.".to_string())
+        Err(format!("fatal: object not found"))
     }
 }
 
@@ -108,6 +76,7 @@ pub fn read(repo: Repo, hash: &str) -> Result<GitObject, String> {
 /// The object is written to the repository that the object represents. If the
 /// dry_run flag is set to true, the hash will be calculated but not written
 /// to the directory.
+#[allow(dead_code)]
 pub fn write<T: Serializable>(object: &T, dry_run: bool) -> Result<String, String> {
     let payload = object.serialize();
     let header = format!("{} {}\0", object.get_format(), payload.len());
@@ -124,6 +93,8 @@ pub fn write<T: Serializable>(object: &T, dry_run: bool) -> Result<String, Strin
     return Ok(hash);
 }
 
+/// Finds object.
+#[allow(dead_code)]
 fn find_object<'a>(_repo: Repo, name: &'a str, _type: Option<&str>, _follow: bool) -> &'a str {
     return name;
 }

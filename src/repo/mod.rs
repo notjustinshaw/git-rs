@@ -92,48 +92,51 @@ impl Repo {
     ///
     /// * `path` - The path to the repository.
     pub fn new(path: &PathBuf) -> Result<Repo, String> {
-        match Repo::init(path, true) {
-            Ok(repo) => {
-                // First, make sure the path either doesn't exist or is an empty directory.
-                if repo.work_tree.exists() {
-                    let dir = repo.work_tree.display();
-                    if !repo.work_tree.is_dir() {
-                        return Err(format!("{} is not a directory", dir));
-                    }
-                    if repo.work_tree.read_dir().unwrap().count() != 0 {
-                        return Err(format!("{} is not empty", dir));
-                    }
-                } else {
-                    if !create_dir_all(&repo.work_tree).is_ok() {
-                        panic!("failed to create {}", repo.work_tree.display());
-                    }
-                }
+        let repo = Repo::init(path, true)?;
 
-                // Verify that the repository has been successfully created.
-                repo_dir(&repo.git_dir, &["branches"], true);
-                repo_dir(&repo.git_dir, &["objects"], true);
-                repo_dir(&repo.git_dir, &["refs", "tags"], true);
-                repo_dir(&repo.git_dir, &["refs", "heads"], true);
-
-                // Write the default `.git/description` file.
-                let data = "Edit this file to name this repository.\n";
-                let path = repo_file(&repo.git_dir, &["description"], true);
-                Repo::write_to_file(data, &path.unwrap());
-
-                // Write the default `.git/description` file.
-                let data = "ref: refs/heads/master\n";
-                let path = repo_file(&repo.git_dir, &["HEAD"], true);
-                Repo::write_to_file(data, &path.unwrap());
-
-                // Write the default `.git/config` file.
-                let config = Repo::repo_default_config();
-                let path = repo_file(&repo.git_dir, &["config"], true);
-                config.write_to_file(path.unwrap()).unwrap();
-
-                return Ok(repo);
+        // First, make sure the path either doesn't exist or is an empty directory.
+        if repo.work_tree.exists() {
+            let dir = repo.work_tree.display();
+            if !repo.work_tree.is_dir() {
+                return Err(format!("{} is not a directory", dir));
             }
-            Err(error) => return Err(error),
+            if repo.work_tree.read_dir().unwrap().count() != 0 {
+                return Err(format!("{} is not empty", dir));
+            }
+        } else {
+            if !create_dir_all(&repo.work_tree).is_ok() {
+                panic!("failed to create {}", repo.work_tree.display());
+            }
         }
+
+        // Verify that the repository has been successfully created.
+        repo_dir(&repo.git_dir, &["branches"], true);
+        repo_dir(&repo.git_dir, &["objects"], true);
+        repo_dir(&repo.git_dir, &["refs", "tags"], true);
+        repo_dir(&repo.git_dir, &["refs", "heads"], true);
+
+        // Write the default `.git/description` file.
+        let data = "Unnamed repository; edit this file 'description' to name the repository.\n";
+        let path = repo_file(&repo.git_dir, &["description"], true);
+        Repo::write_to_file(data, &path.unwrap());
+
+        // Write the default `.git/description` file.
+        let data = "ref: refs/heads/master\n";
+        let path = repo_file(&repo.git_dir, &["HEAD"], true);
+        Repo::write_to_file(data, &path.unwrap());
+
+        // Write the default `.git/config` file.
+        let config = Repo::repo_default_config();
+        let path = repo_file(&repo.git_dir, &["config"], true);
+        config.write_to_file(path.unwrap()).unwrap();
+
+        return Ok(repo);
+    }
+
+    /// Create a new repo object from an existing repository.
+    pub fn from_existing(path: &PathBuf) -> Result<Repo, String> {
+        let repo = Repo::init(path, false)?;
+        return Ok(repo);
     }
 
     /// Walk up the directory tree to find the root of the repository (`.git`).
@@ -143,7 +146,7 @@ impl Repo {
 
         // If the path has a `.git` directory, we are done.
         if path.join(".git").is_dir() {
-            match Repo::new(&path) {
+            match Repo::from_existing(&path) {
                 Ok(repo) => return Ok(Some(repo)),
                 Err(error) => return Err(error),
             }

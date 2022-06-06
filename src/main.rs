@@ -25,7 +25,7 @@ fn main() {
     let args: Arguments = Arguments::parse();
     match &args.command {
         Commands::Add(_) => cmd_add(),
-        Commands::CatFile(_) => cmd_cat_file(),
+        Commands::CatFile(opts) => cmd_cat_file(opts),
         Commands::Checkout(_) => cmd_checkout(),
         Commands::Commit(_) => cmd_commit(),
         Commands::HashObject(_) => cmd_hash_object(),

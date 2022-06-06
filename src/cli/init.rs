@@ -15,7 +15,7 @@ pub fn cmd_init(opts: &Init) {
         Ok(repo) => {
             println!(
                 "Initialized empty Git repository in {}",
-                repo.work_tree.display()
+                repo.work_tree.canonicalize().unwrap().display()
             );
         }
         Err(error) => {
