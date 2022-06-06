@@ -23,10 +23,12 @@ pub struct HashObject {
 /// If the `-w` flag is passed, writes the object to the git directory at the
 /// path corresponding to its hash. If no flag
 pub fn cmd_hash_object(opts: &HashObject) -> Result<(), String> {
-    let repo: Option<Repo> = match &opts.write {
-        true => Repo::find_repo(&PathBuf::from("."), true)?,
-        false => None,
+    let repo: Option<Repo> = if opts.write {
+        Repo::find_repo(&PathBuf::from("."), true)?
+    } else {
+        None
     };
+    // Repo::find_repo(&PathBuf::from("."), true)?;
 
     if let Ok(file) = fs::read(PathBuf::from_str(&opts.file).unwrap()) {
         println!("{:?}", file);

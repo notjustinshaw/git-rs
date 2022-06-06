@@ -187,6 +187,18 @@ impl Repo {
     }
 }
 
+impl Default for Repo {
+    /// Walks up the directory tree starting in `.` to find the root of the
+    /// repository (`.git`), errors if repository not found.
+    fn default() -> Repo {
+        if let Ok(Some(repo)) = Repo::find_repo(&PathBuf::from("."), true) {
+            repo
+        } else {
+            panic!("unable to find repository")
+        }
+    }
+}
+
 /// Returns a new PathBuf with the given path appended to the given pathbuf.
 fn repo_path(git_dir: &PathBuf, paths: &[&str]) -> PathBuf {
     let mut new_path = git_dir.clone();
