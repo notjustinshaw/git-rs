@@ -1,8 +1,18 @@
 use clap::Args;
 
+/// Display history of a given commit.
+///
+/// Starting at the given commit (or HEAD by default) this command will show
+/// the history of changes for a particular commit.
+///
+/// # Example
+/// ```bash
+/// $ git log
+/// ```
 #[derive(Args, Debug)]
 pub struct Log {
-  pub name: Option<String>,
+  /// The commit to start at
+  pub commit: Option<String>,
 }
 
 pub fn cmd_log() -> Result<(), String> {
