@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use clap::Args;
+use colored::Colorize;
 use indexmap::IndexMap;
 
 use crate::{
@@ -60,9 +61,9 @@ fn print_commit(repo: Repo, hash: String, seen: &mut HashSet<String>) -> Result<
   for parent in parents {
     for key in map.keys() {
       match key.as_str() {
-        "tree" => println!("commit {}", map.get("tree").unwrap()),
+        "tree" => println!("commit {}", map.get("tree").unwrap().yellow()),
         "author" => println!("Author: {}", map.get("author").unwrap()),
-        "" => println!("\t{}", map.get("").unwrap()),
+        "" => println!("\n    {}", map.get("").unwrap()),
         _ => continue,
       }
     }

@@ -70,7 +70,7 @@ impl GitObject {
       (_any, Some(newline)) if newline <= maybe_space.unwrap_or(newline) => {
         assert_eq!(newline, offset);
         let key = String::from("");
-        let value = String::from_utf8(raw[offset..].to_vec()).unwrap();
+        let value = String::from_utf8(raw[offset + 1..].to_vec()).unwrap();
         self.map.entry(key).or_insert(value);
       }
       (None, None) => (), // reached the end of the raw data
