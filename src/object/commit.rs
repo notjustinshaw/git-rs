@@ -1,28 +1,28 @@
 use crate::repo::Repo;
 
-use super::{serializable::Serializable, Object};
+use super::{git_object::GitObject, serializable::Serializable, Object};
 
 pub struct Commit {
   pub object: Object,
-  pub data: Vec<u8>,
+  pub gob: GitObject,
 }
 
 impl Commit {
   pub fn new(repo: Repo, data: &str) -> Self {
     Self {
       object: Object::new(repo, "commit"),
-      data: data.as_bytes().to_vec(),
+      gob: GitObject::new(),
     }
   }
 }
 
 impl Serializable for Commit {
   fn serialize(&self) -> &[u8] {
-    return &self.data;
+    return &self.gob.to_bytes().as_bytes();
   }
 
   fn deserialize(&mut self, data: &str) {
-    self.data = data.as_bytes().to_vec();
+    self.gob.from_bytes(data.as_bytes(), 0);
   }
 
   fn get_format(&self) -> &str {

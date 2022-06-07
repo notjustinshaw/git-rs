@@ -3,6 +3,7 @@ pub(crate) mod object;
 pub(crate) mod serializable;
 mod git_object;
 mod findable;
+mod commit;
 
 use crate::crypto;
 use crate::object::blob::Blob;
