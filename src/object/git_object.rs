@@ -1,4 +1,6 @@
 use crate::object::findable::Findable;
+use indexmap::IndexMap;
+
 /// A text-based key-value store.
 ///
 /// This format is a simplified version of mail messages, specified in RFC 2822.
@@ -44,13 +46,18 @@ use crate::object::findable::Findable;
 /// committer => Thibault Polge <thibault@thb.lt> 1527025044 +0200
 /// gpgsig    => -----BEGIN PGP SIGNATURE----- ... -----END PGP SIGNATURE-----
 /// ```
-use indexmap::IndexMap;
 
-pub struct GitObject(IndexMap<String, String>);
+pub struct GitObject {
+  pub map: IndexMap<String, String>,
+  data: Vec<u8>,
+}
 
 impl GitObject {
   pub fn new() -> Self {
-    Self(IndexMap::new())
+    Self {
+      map: IndexMap::new(),
+      data: Vec::default(),
+    }
   }
 
   pub fn from_bytes(&mut self, raw: &[u8], offset: usize) {
@@ -64,7 +71,7 @@ impl GitObject {
         assert_eq!(newline, offset);
         let key = String::from("");
         let value = String::from_utf8(raw[offset..].to_vec()).unwrap();
-        self.0.entry(key).or_insert(value);
+        self.map.entry(key).or_insert(value);
       }
       _ => {
         let space = maybe_space.unwrap(); // can't panic
@@ -77,21 +84,20 @@ impl GitObject {
           }
         }
         let value = String::from_utf8(raw[space + 1..end].to_vec()).unwrap();
-        self.0.entry(key).or_insert(value.replace("\n ", "\n"));
+        self.map.entry(key).or_insert(value.replace("\n ", "\n"));
         self.from_bytes(raw, end + 1);
       }
     }
-  }
 
-  pub fn to_bytes(&self) -> String {
+    // Walk through the map and build out the file as a string
     let mut result = String::from("");
 
     // append the fields (key-value pairs)
-    for key in self.0.keys() {
+    for key in self.map.keys() {
       if key == "" {
         continue;
       }
-      let value = self.0.get(key).unwrap();
+      let value = self.map.get(key).unwrap();
       result.push_str(key);
       result.push_str(" ");
       result.push_str(&value.replace("\n", "\n "));
@@ -100,8 +106,12 @@ impl GitObject {
 
     // append the message (the key of the message is the empty string)
     result.push_str("\n");
-    result.push_str(self.0.get("").unwrap());
+    result.push_str(self.map.get("").unwrap());
 
-    return result;
+    self.data = result.into_bytes();
+  }
+
+  pub fn to_bytes(&self) -> &[u8] {
+    return self.data.as_slice();
   }
 }

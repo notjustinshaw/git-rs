@@ -12,6 +12,7 @@ use crate::repo::{repo_file, Repo};
 use std::fs::{self, File};
 use std::io::prelude::*;
 
+use self::commit::Commit;
 use self::object::Object;
 
 /// A git object.
@@ -64,7 +65,7 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
 
     match object_type {
       "blob" => Ok(Box::new(Blob::new(repo, &raw[null_byte + 1..]))),
-      "commit" => Ok(Box::new(Object::new(repo, "commit"))),
+      "commit" => Ok(Box::new(Commit::new(repo, "commit"))),
       "tag" => Ok(Box::new(Object::new(repo, "tag"))),
       "tree" => Ok(Box::new(Object::new(repo, "tree"))),
       _ => Err(format!("unsupported type \"{}\"", object_type)),

@@ -8,7 +8,7 @@ pub struct Commit {
 }
 
 impl Commit {
-  pub fn new(repo: Repo, data: &str) -> Self {
+  pub fn new(repo: Repo, _data: &str) -> Self {
     Self {
       object: Object::new(repo, "commit"),
       gob: GitObject::new(),
@@ -18,7 +18,7 @@ impl Commit {
 
 impl Serializable for Commit {
   fn serialize(&self) -> &[u8] {
-    return &self.gob.to_bytes().as_bytes();
+    return &self.gob.to_bytes();
   }
 
   fn deserialize(&mut self, data: &str) {
