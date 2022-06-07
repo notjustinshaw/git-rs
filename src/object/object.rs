@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::repo::Repo;
 
 use super::serializable::Serializable;
@@ -31,5 +33,9 @@ impl Serializable for Object {
 
   fn get_repo(&self) -> &Repo {
     &self.repo
+  }
+
+  fn as_any(&self) -> &dyn Any {
+    self
   }
 }

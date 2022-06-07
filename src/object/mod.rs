@@ -1,9 +1,9 @@
 pub(crate) mod blob;
+pub(crate) mod commit;
+mod findable;
+mod git_object;
 pub(crate) mod object;
 pub(crate) mod serializable;
-mod git_object;
-mod findable;
-mod commit;
 
 use crate::crypto;
 use crate::object::blob::Blob;
@@ -44,8 +44,11 @@ use self::object::Object;
 /// whose exact type depends on the object read from memory.
 pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializable>, String> {
   let directories = ["objects", &hash[0..2], &hash[2..]];
-  let path = repo_file(&repo.git_dir, &directories, false);
-  if let Ok(file) = fs::read(path.unwrap()) {
+  let path = match repo_file(&repo.git_dir, &directories, false) {
+    Some(p) => p,
+    None => return Err(format!("object not found {}", hash)),
+  };
+  if let Ok(file) = fs::read(path) {
     let raw = crypto::decompress(&file)?;
 
     // Read the object type
@@ -65,7 +68,7 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
 
     match object_type {
       "blob" => Ok(Box::new(Blob::new(repo, &raw[null_byte + 1..]))),
-      "commit" => Ok(Box::new(Commit::new(repo, "commit"))),
+      "commit" => Ok(Box::new(Commit::new(repo, &raw[null_byte + 1..]))),
       "tag" => Ok(Box::new(Object::new(repo, "tag"))),
       "tree" => Ok(Box::new(Object::new(repo, "tree"))),
       _ => Err(format!("unsupported type \"{}\"", object_type)),
@@ -97,7 +100,6 @@ pub fn write(object: &Box<dyn Serializable>, dry_run: bool) -> Result<String, St
 }
 
 /// Finds object.
-#[allow(dead_code)]
-fn find_object<'a>(_repo: Repo, name: &'a str, _type: Option<&str>, _follow: bool) -> &'a str {
+pub fn find_object<'a>(_repo: Repo, name: &'a str, _type: Option<&str>, _follow: bool) -> &'a str {
   return name;
 }

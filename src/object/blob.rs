@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::repo::Repo;
 
 use super::{serializable::Serializable, Object};
@@ -31,5 +33,9 @@ impl Serializable for Blob {
 
   fn get_repo(&self) -> &Repo {
     &self.object.get_repo()
+  }
+
+  fn as_any(&self) -> &dyn Any {
+    self
   }
 }

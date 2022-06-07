@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::repo::Repo;
 
 use super::{git_object::GitObject, serializable::Serializable, Object};
@@ -8,10 +10,12 @@ pub struct Commit {
 }
 
 impl Commit {
-  pub fn new(repo: Repo, _data: &str) -> Self {
+  pub fn new(repo: Repo, data: &str) -> Self {
+    let mut gob = GitObject::new();
+    gob.from_bytes(data.as_bytes(), 0);
     Self {
       object: Object::new(repo, "commit"),
-      gob: GitObject::new(),
+      gob,
     }
   }
 }
@@ -31,5 +35,9 @@ impl Serializable for Commit {
 
   fn get_repo(&self) -> &Repo {
     &self.object.get_repo()
+  }
+
+  fn as_any(&self) -> &dyn Any {
+    self
   }
 }

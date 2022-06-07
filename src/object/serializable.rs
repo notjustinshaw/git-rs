@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::repo::Repo;
 
 pub trait Serializable {
@@ -5,4 +7,5 @@ pub trait Serializable {
   fn deserialize(&mut self, data: &str);
   fn get_format(&self) -> &str;
   fn get_repo(&self) -> &Repo;
+  fn as_any(&self) -> &dyn Any;
 }

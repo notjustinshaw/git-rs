@@ -22,6 +22,7 @@ use crate::cli::show_tree::cmd_show_tree;
 use crate::cli::tag::cmd_tag;
 
 fn main() {
+  // multiplex the command line args
   let args: Arguments = Arguments::parse();
   let response: Result<(), String> = match &args.command {
     Command::Add(_) => cmd_add(),
@@ -30,7 +31,7 @@ fn main() {
     Command::Commit(_) => cmd_commit(),
     Command::HashObject(opts) => cmd_hash_object(opts),
     Command::Init(opts) => cmd_init(opts),
-    Command::Log(_) => cmd_log(),
+    Command::Log(opts) => cmd_log(opts),
     Command::ShowTree(_) => cmd_show_tree(),
     Command::Merge(_) => cmd_merge(),
     Command::Rebase(_) => cmd_rebase(),
@@ -40,7 +41,7 @@ fn main() {
     Command::Tag(_) => cmd_tag(),
   };
 
-  // handle the response type
+  // handle the response type if it errored out
   if let Some(err) = response.err() {
     println!("fatal: {}", err);
   }

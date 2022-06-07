@@ -13,6 +13,7 @@ use std::{
 /// The working tree is the directory where the files that are tracked by git
 /// are stored. The git directory is where git keeps its metadata. The git
 /// directory is usually located in the `.git` directory in the working tree.
+#[derive(Clone)]
 pub struct Repo {
   /// The path to the git directory.
   pub git_dir: PathBuf,
