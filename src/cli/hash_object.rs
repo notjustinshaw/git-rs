@@ -13,6 +13,12 @@ use crate::repo::Repo;
 /// Converts a file into object form. The file contents are compressed and
 /// stored on the filesystem with an object header. The header contains some
 /// simple information about the object such as the object type and its size.
+/// 
+/// ### Example
+/// ```bash
+/// $ git hash-object hello.txt
+/// 3b18e512dba79e4c8300dd08aeb37f8e728b8dad
+/// ```
 ///
 /// ## What about packfiles?
 /// Packfiles are another way that `git` stores information about a repository.
