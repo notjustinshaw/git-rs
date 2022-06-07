@@ -1,6 +1,8 @@
 pub(crate) mod blob;
 pub(crate) mod object;
 pub(crate) mod serializable;
+mod git_object;
+mod findable;
 
 use crate::crypto;
 use crate::object::blob::Blob;
@@ -48,7 +50,7 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
     let first_space: usize = raw.find(' ').unwrap();
     let object_type: &str = &raw[0..first_space];
     if object_type != typename {
-      return Err(format!("fatal: invalid object type \"{}\"", typename));
+      return Err(format!("invalid object type \"{}\"", typename));
     }
 
     // Read and validate the object size
@@ -56,7 +58,7 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
     let object_size: usize = raw[first_space + 1..null_byte].parse::<usize>().unwrap();
 
     if object_size != raw.len() - null_byte - 1 {
-      return Err(format!("fatal: size does not match size of raw data"));
+      return Err(format!("size does not match size of raw data"));
     }
 
     match object_type {
@@ -67,7 +69,7 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
       _ => Err(format!("unsupported type \"{}\"", object_type)),
     }
   } else {
-    Err(format!("fatal: object not found"))
+    Err(format!("object not found"))
   }
 }
 
