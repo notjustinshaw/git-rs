@@ -1,13 +1,16 @@
 pub(crate) mod blob;
 pub(crate) mod commit;
-mod findable;
-mod git_object;
+pub(crate) mod findable;
+pub(crate) mod git_object;
+pub(crate) mod mode;
 pub(crate) mod object;
 pub(crate) mod serializable;
+pub(crate) mod tree;
 
 use crate::crypto;
 use crate::object::blob::Blob;
 use crate::object::serializable::Serializable;
+use crate::object::tree::Tree;
 use crate::repo::{repo_file, Repo};
 use std::fs::{self, File};
 use std::io::prelude::*;
@@ -70,7 +73,7 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
       "blob" => Ok(Box::new(Blob::new(repo, &raw[null_byte + 1..]))),
       "commit" => Ok(Box::new(Commit::new(repo, &raw[null_byte + 1..]))),
       "tag" => Ok(Box::new(Object::new(repo, "tag"))),
-      "tree" => Ok(Box::new(Object::new(repo, "tree"))),
+      "tree" => Ok(Box::new(Tree::new(repo, &raw[null_byte + 1..]))),
       _ => Err(format!("unsupported type \"{}\"", object_type)),
     }
   } else {
