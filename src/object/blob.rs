@@ -10,10 +10,10 @@ pub struct Blob {
 }
 
 impl Blob {
-  pub fn new(repo: Repo, data: &str) -> Self {
+  pub fn new(repo: Repo, data: &[u8]) -> Self {
     Self {
       object: Object::new(repo, "blob"),
-      data: data.as_bytes().to_vec(),
+      data: data.to_vec(),
     }
   }
 }
@@ -23,8 +23,8 @@ impl Serializable for Blob {
     return &self.data;
   }
 
-  fn deserialize(&mut self, data: &str) {
-    self.data = data.as_bytes().to_vec();
+  fn deserialize(&mut self, data: &[u8]) {
+    self.data = data.to_vec();
   }
 
   fn get_format(&self) -> &str {

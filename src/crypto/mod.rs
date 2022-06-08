@@ -6,10 +6,10 @@ use sha1::{Digest, Sha1};
 use std::io::prelude::*;
 
 /// Decompresses an array of bytes using zlib.
-pub fn decompress(data: &[u8]) -> Result<String, String> {
+pub fn decompress(data: &[u8]) -> Result<Vec<u8>, String> {
   let mut zlib_decoder = ZlibDecoder::new(data);
-  let mut result = String::new();
-  match zlib_decoder.read_to_string(&mut result) {
+  let mut result = Vec::new();
+  match zlib_decoder.read_to_end(&mut result) {
     Ok(_bytes_read) => Ok(result),
     Err(error) => Err(error.to_string()),
   }

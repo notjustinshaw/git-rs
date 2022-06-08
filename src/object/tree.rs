@@ -31,7 +31,7 @@ pub struct Tree {
 }
 
 impl Tree {
-  pub fn new(repo: Repo, data: &str) -> Self {
+  pub fn new(repo: Repo, data: &[u8]) -> Self {
     let mut new_tree: Self = Self {
       object: Object::new(repo, "tree"),
       entries: Vec::default(),
@@ -47,8 +47,8 @@ impl Serializable for Tree {
     return &self.bytes;
   }
 
-  fn deserialize(&mut self, data: &str) {
-    self.bytes = data.as_bytes().to_vec();
+  fn deserialize(&mut self, data: &[u8]) {
+    self.bytes = data.to_vec();
     let mut offset: usize = 0;
     while offset < self.bytes.len() {
       let entry: TreeEntry = TreeEntry::from_bytes(&self.bytes, offset);
@@ -71,7 +71,7 @@ impl Serializable for Tree {
 }
 
 /// A single tree entry.
-
+#[derive(Debug)]
 pub struct TreeEntry {
   pub mode: Mode,
   pub path: String,
@@ -96,7 +96,6 @@ impl TreeEntry {
     let mode = String::from_utf8(raw[offset..space].to_vec()).unwrap();
     let mode = mode.parse::<usize>().unwrap();
     let mode: Mode = Mode::try_from(mode).expect("unable to parse file mode");
-    print!(" {}", mode);
 
     // Find the null-terminator of the path
     let maybe_null = raw.find(b'\0', space);
@@ -105,13 +104,10 @@ impl TreeEntry {
       _ => panic!("Failed to create TreeEntry: inconsistent input"),
     };
     let path = String::from_utf8(raw[space + 1..null].to_vec()).unwrap();
-    print!(" {}", path);
 
     // Read out the hash and convert it to a hex string (20 bytes)
     let hash = hex::encode(raw[null + 1..null + 21].to_vec());
-    print!(" {}", hash);
-    let len = null + 21;
-    println!(" {}", len);
+    let len = null + 21 - offset;
     Self {
       mode,
       path,

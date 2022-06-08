@@ -44,7 +44,7 @@ fn print_commit(repo: Repo, hash: String, seen: &mut HashSet<String>) -> Result<
   }
   seen.insert(hash.to_owned());
 
-  let commit_object = read(repo.clone(), &hash, "commit")?;
+  let commit_object = read(repo.clone(), &hash, Some("commit"))?;
   assert!(commit_object.get_format().eq("commit"));
   let commit: &Commit = match commit_object.as_any().downcast_ref::<Commit>() {
     Some(cmt) => cmt,

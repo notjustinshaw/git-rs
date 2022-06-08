@@ -23,7 +23,7 @@ impl Serializable for Object {
     unimplemented!();
   }
 
-  fn deserialize(&mut self, _data: &str) {
+  fn deserialize(&mut self, _data: &[u8]) {
     unimplemented!();
   }
 

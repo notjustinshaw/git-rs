@@ -10,9 +10,9 @@ pub struct Commit {
 }
 
 impl Commit {
-  pub fn new(repo: Repo, data: &str) -> Self {
+  pub fn new(repo: Repo, data: &[u8]) -> Self {
     let mut gob = GitObject::new();
-    gob.from_bytes(data.as_bytes(), 0);
+    gob.from_bytes(data, 0);
     Self {
       object: Object::new(repo, "commit"),
       gob,
@@ -25,8 +25,8 @@ impl Serializable for Commit {
     return &self.gob.to_bytes();
   }
 
-  fn deserialize(&mut self, data: &str) {
-    self.gob.from_bytes(data.as_bytes(), 0);
+  fn deserialize(&mut self, data: &[u8]) {
+    self.gob.from_bytes(data, 0);
   }
 
   fn get_format(&self) -> &str {

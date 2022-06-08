@@ -9,14 +9,14 @@ pub(crate) mod tree;
 
 use crate::crypto;
 use crate::object::blob::Blob;
+use crate::object::commit::Commit;
+use crate::object::findable::Findable;
+use crate::object::object::Object;
 use crate::object::serializable::Serializable;
 use crate::object::tree::Tree;
 use crate::repo::{repo_file, Repo};
 use std::fs::{self, File};
 use std::io::prelude::*;
-
-use self::commit::Commit;
-use self::object::Object;
 
 /// A git object.
 ///
@@ -45,7 +45,11 @@ use self::object::Object;
 
 /// Reads object object_id from the repository repo and returns an object
 /// whose exact type depends on the object read from memory.
-pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializable>, String> {
+pub fn read(
+  repo: Repo,
+  hash: &str,
+  typename: Option<&str>,
+) -> Result<Box<dyn Serializable>, String> {
   let directories = ["objects", &hash[0..2], &hash[2..]];
   let path = match repo_file(&repo.git_dir, &directories, false) {
     Some(p) => p,
@@ -55,25 +59,32 @@ pub fn read(repo: Repo, hash: &str, typename: &str) -> Result<Box<dyn Serializab
     let raw = crypto::decompress(&file)?;
 
     // Read the object type
-    let first_space: usize = raw.find(' ').unwrap();
-    let object_type: &str = &raw[0..first_space];
-    if object_type != typename {
-      return Err(format!("invalid object type \"{}\"", typename));
+    let first_space: usize = raw.find(b' ', 0).unwrap();
+    let object_type: &str = &String::from_utf8(raw[0..first_space].to_vec()).unwrap();
+    match typename {
+      Some(name) if object_type != name => {
+        return Err(format!("invalid object type \"{}\"", typename.unwrap()))
+      }
+      _ => (),
     }
 
     // Read and validate the object size
-    let null_byte: usize = raw.find('\0').unwrap();
-    let object_size: usize = raw[first_space + 1..null_byte].parse::<usize>().unwrap();
+    let null_byte: usize = raw.find(b'\0', 0).unwrap();
+    let object_size: usize = String::from_utf8(raw[first_space + 1..null_byte].to_vec())
+      .unwrap()
+      .parse::<usize>()
+      .unwrap();
 
     if object_size != raw.len() - null_byte - 1 {
       return Err(format!("size does not match size of raw data"));
     }
 
+    let payload = &raw[null_byte + 1..];
     match object_type {
-      "blob" => Ok(Box::new(Blob::new(repo, &raw[null_byte + 1..]))),
-      "commit" => Ok(Box::new(Commit::new(repo, &raw[null_byte + 1..]))),
+      "blob" => Ok(Box::new(Blob::new(repo, &payload))),
+      "commit" => Ok(Box::new(Commit::new(repo, &payload))),
+      "tree" => Ok(Box::new(Tree::new(repo, &payload))),
       "tag" => Ok(Box::new(Object::new(repo, "tag"))),
-      "tree" => Ok(Box::new(Tree::new(repo, &raw[null_byte + 1..]))),
       _ => Err(format!("unsupported type \"{}\"", object_type)),
     }
   } else {

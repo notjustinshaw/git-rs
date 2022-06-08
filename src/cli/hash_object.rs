@@ -67,7 +67,7 @@ pub struct HashObject {
 pub fn cmd_hash_object(opts: &HashObject) -> Result<(), String> {
   let repo: Repo = Repo::default();
   let path: PathBuf = PathBuf::from_str(&opts.file).unwrap();
-  if let Ok(file) = fs::read_to_string(path) {
+  if let Ok(file) = fs::read(path) {
     let obj: Box<dyn Serializable> = match opts.typename.as_str() {
       "blob" => Box::new(Blob::new(repo, &file)),
       "commit" => Box::new(Object::new(repo, "commit")),

@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::fmt::Display;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum Mode {
   Normal = 100644,
   Directory = 40000,
