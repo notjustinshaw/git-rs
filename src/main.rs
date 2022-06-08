@@ -32,7 +32,7 @@ fn main() {
     Command::HashObject(opts) => cmd_hash_object(opts),
     Command::Init(opts) => cmd_init(opts),
     Command::Log(opts) => cmd_log(opts),
-    Command::ShowTree(opts) => cmd_show_tree(opts),
+    Command::LsTree(opts) => cmd_show_tree(opts),
     Command::Merge(_) => cmd_merge(),
     Command::Rebase(_) => cmd_rebase(),
     Command::RevParse(_) => cmd_rev_parse(),

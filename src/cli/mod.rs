@@ -66,7 +66,7 @@ pub enum Command {
   Log(Log),
 
   /// List the contents of a tree object.
-  ShowTree(ShowTree),
+  LsTree(ShowTree),
 
   /// Join two or more development histories together.
   Merge(Merge),
