@@ -27,7 +27,7 @@ fn main() {
   let response: Result<(), String> = match &args.command {
     Command::Add(_) => cmd_add(),
     Command::CatFile(opts) => cmd_cat_file(opts),
-    Command::Checkout(_) => cmd_checkout(),
+    Command::Checkout(opts) => cmd_checkout(opts),
     Command::Commit(_) => cmd_commit(),
     Command::HashObject(opts) => cmd_hash_object(opts),
     Command::Init(opts) => cmd_init(opts),

@@ -12,9 +12,9 @@ pub struct ShowTree {
 
 pub fn cmd_show_tree(opts: &ShowTree) -> Result<(), String> {
   let repo: Repo = Repo::default();
-  let commit_object = read(repo.clone(), &opts.object, Some("tree"))?;
-  assert!(commit_object.get_format().eq("tree"));
-  let tree: &Tree = match commit_object.as_any().downcast_ref::<Tree>() {
+  let tree_object = read(repo.clone(), &opts.object, Some("tree"))?;
+  assert!(tree_object.get_format().eq("tree"));
+  let tree: &Tree = match tree_object.as_any().downcast_ref::<Tree>() {
     Some(cmt) => cmt,
     None => return Err(format!("downcast to commit failed")),
   };
