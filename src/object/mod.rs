@@ -3,17 +3,15 @@ pub(crate) mod commit;
 pub(crate) mod findable;
 pub(crate) mod mail_map;
 pub(crate) mod mode;
-pub(crate) mod object;
 pub(crate) mod refs;
 pub(crate) mod serializable;
-mod tag;
+pub(crate) mod tag;
 pub(crate) mod tree;
 
 use crate::crypto;
 use crate::object::blob::Blob;
 use crate::object::commit::Commit;
 use crate::object::findable::Findable;
-use crate::object::object::Object;
 use crate::object::serializable::Serializable;
 use crate::object::tree::Tree;
 use crate::repo::{repo_file, Repo};
@@ -103,13 +101,13 @@ pub fn read(
 /// to the directory.
 pub fn write(object: &Box<dyn Serializable>, dry_run: bool) -> Result<String, String> {
   let payload = object.serialize();
-  let header = format!("{} {}\0", object.get_format(), payload.len());
+  let header = format!("{} {}\0", object.format(), payload.len());
   let data = [header.as_bytes(), payload].concat();
   let hash = crypto::sha_1(&data);
 
   if !dry_run {
     let directories = ["objects", &hash[0..2], &hash[2..]];
-    let path = repo_file(&object.get_repo().git_dir, &directories, true);
+    let path = repo_file(&object.repo().git_dir, &directories, true);
     let mut file = File::create(path.unwrap()).unwrap();
     let compressed_data = crypto::compress(&data)?;
     file.write_all(&compressed_data[..]).unwrap();

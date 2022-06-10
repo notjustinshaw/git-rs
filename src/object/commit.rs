@@ -1,43 +1,49 @@
-use std::any::Any;
+use std::ops::Deref;
 
 use crate::repo::Repo;
 
-use super::{serializable::Serializable, Object, mail_map::MailMap};
+use super::{mail_map::MailMap, serializable::Serializable};
 
 pub struct Commit {
-  pub object: Object,
-  pub map: MailMap,
+  format: String,
+  map: MailMap,
+  repo: Repo,
 }
 
 impl Commit {
   pub fn new(repo: Repo, data: &[u8]) -> Self {
-    let mut map = MailMap::new();
-    map.from_bytes(data, 0);
-    Self {
-      object: Object::new(repo, "commit"),
-      map,
-    }
+    let mut new_commit: Self = Self {
+      format: String::from("commit"),
+      map: MailMap::new(),
+      repo,
+    };
+    new_commit.map.from_bytes(data, 0);
+    return new_commit;
+  }
+}
+
+impl Deref for Commit {
+  type Target = MailMap;
+
+  fn deref(&self) -> &Self::Target {
+    &self.map
   }
 }
 
 impl Serializable for Commit {
   fn serialize(&self) -> &[u8] {
-    return &self.map.to_bytes();
+    self.map.to_bytes()
   }
-
+  
   fn deserialize(&mut self, data: &[u8]) {
-    self.map.from_bytes(data, 0);
+    self.map.from_bytes(data, 0)
   }
 
-  fn get_format(&self) -> &str {
-    self.object.get_format()
+  fn format(&self) -> &String {
+    &self.format
   }
 
-  fn get_repo(&self) -> &Repo {
-    &self.object.get_repo()
-  }
-
-  fn as_any(&self) -> &dyn Any {
-    self
+  fn repo(&self) -> &Repo {
+    &self.repo
   }
 }

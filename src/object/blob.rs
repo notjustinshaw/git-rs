@@ -1,20 +1,24 @@
-use std::any::Any;
-
 use crate::repo::Repo;
 
-use super::{serializable::Serializable, Object};
+use super::serializable::Serializable;
 
 pub struct Blob {
-  pub object: Object,
-  pub data: Vec<u8>,
+  data: Vec<u8>,
+  format: String,
+  repo: Repo,
 }
 
 impl Blob {
   pub fn new(repo: Repo, data: &[u8]) -> Self {
     Self {
-      object: Object::new(repo, "blob"),
       data: data.to_vec(),
+      format: String::from("blob"),
+      repo,
     }
+  }
+
+  pub fn data(&self) -> &Vec<u8> {
+    &self.data
   }
 }
 
@@ -27,15 +31,11 @@ impl Serializable for Blob {
     self.data = data.to_vec();
   }
 
-  fn get_format(&self) -> &str {
-    self.object.get_format()
+  fn format(&self) -> &String {
+    &self.format
   }
 
-  fn get_repo(&self) -> &Repo {
-    &self.object.get_repo()
-  }
-
-  fn as_any(&self) -> &dyn Any {
-    self
+  fn repo(&self) -> &Repo {
+    &self.repo
   }
 }

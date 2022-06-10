@@ -5,7 +5,7 @@ use colored::Colorize;
 use indexmap::IndexMap;
 
 use crate::{
-  object::{commit::Commit, find_object, read},
+  object::{commit::Commit, find_object, read, serializable::Unbox},
   repo::Repo,
 };
 
@@ -45,13 +45,10 @@ fn print_commit(repo: Repo, hash: String, seen: &mut HashSet<String>) -> Result<
   seen.insert(hash.to_owned());
 
   let commit_object = read(repo.clone(), &hash, Some("commit"))?;
-  assert!(commit_object.get_format().eq("commit"));
-  let commit: &Commit = match commit_object.as_any().downcast_ref::<Commit>() {
-    Some(cmt) => cmt,
-    None => return Err(format!("downcast to commit failed")),
-  };
+  assert!(commit_object.format().eq("commit"));
+  let commit: &Commit = commit_object.unbox::<Commit>()?;
 
-  let map: &IndexMap<String, String> = &commit.map.map;
+  let map: &IndexMap<String, String> = &commit.map;
   if !map.contains_key("parent") {
     // base case - the initial commit has no parent
     return Ok(());

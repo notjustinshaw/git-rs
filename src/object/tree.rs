@@ -1,9 +1,7 @@
-use std::any::Any;
-
 use crate::repo::Repo;
 
 use super::findable::Findable;
-use super::{serializable::Serializable, Object};
+use super::serializable::Serializable;
 
 use super::mode::Mode;
 
@@ -25,20 +23,26 @@ use super::mode::Mode;
 /// | `040000` | `4b1208faa3d3fe86fae5f7e6a8363c3f765b3ddd` | `src`          |
 /// | `040000` | `cdabf2fe75f115689b6bd94832eb340e4dfd6891` | `tests`        |
 pub struct Tree {
-  pub object: Object,
-  pub entries: Vec<TreeEntry>,
-  pub bytes: Vec<u8>,
+  bytes: Vec<u8>,
+  entries: Vec<TreeEntry>,
+  format: String,
+  repo: Repo,
 }
 
 impl Tree {
   pub fn new(repo: Repo, data: &[u8]) -> Self {
     let mut new_tree: Self = Self {
-      object: Object::new(repo, "tree"),
-      entries: Vec::default(),
       bytes: Vec::default(),
+      entries: Vec::default(),
+      format: String::from("tree"),
+      repo,
     };
     new_tree.deserialize(data);
     return new_tree;
+  }
+
+  pub fn entries(&self) -> &Vec<TreeEntry> {
+    &self.entries
   }
 }
 
@@ -57,16 +61,12 @@ impl Serializable for Tree {
     }
   }
 
-  fn get_format(&self) -> &str {
-    self.object.get_format()
+  fn format(&self) -> &String {
+    &self.format
   }
 
-  fn get_repo(&self) -> &Repo {
-    &self.object.get_repo()
-  }
-
-  fn as_any(&self) -> &dyn Any {
-    self
+  fn repo(&self) -> &Repo {
+    &self.repo
   }
 }
 

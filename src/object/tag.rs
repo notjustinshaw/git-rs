@@ -1,6 +1,6 @@
-use crate::object::Object;
+use std::ops::Deref;
+
 use crate::repo::Repo;
-use std::any::Any;
 
 use super::mail_map::MailMap;
 use super::serializable::Serializable;
@@ -21,39 +21,45 @@ use super::serializable::Serializable;
 /// hello world!
 /// ```
 pub struct Tag {
-  pub object: Object,
-  pub map: MailMap,
+  format: String,
+  map: MailMap,
+  repo: Repo,
 }
 
 impl Tag {
   pub fn new(repo: Repo, data: &[u8]) -> Self {
-    let mut map = MailMap::new();
-    map.from_bytes(data, 0);
-    Self {
-      object: Object::new(repo, "tag"),
-      map,
-    }
+    let mut new_tag: Self = Self {
+      format: String::from("tag"),
+      map: MailMap::new(),
+      repo,
+    };
+    new_tag.map.from_bytes(data, 0);
+    return new_tag;
+  }
+}
+
+impl Deref for Tag {
+  type Target = MailMap;
+
+  fn deref(&self) -> &Self::Target {
+    &self.map
   }
 }
 
 impl Serializable for Tag {
   fn serialize(&self) -> &[u8] {
-    return &self.map.to_bytes();
+    self.map.to_bytes()
   }
 
   fn deserialize(&mut self, data: &[u8]) {
-    self.map.from_bytes(data, 0);
+    self.map.from_bytes(data, 0)
   }
 
-  fn get_format(&self) -> &str {
-    self.object.get_format()
+  fn format(&self) -> &String {
+    &self.format
   }
 
-  fn get_repo(&self) -> &Repo {
-    &self.object.get_repo()
-  }
-
-  fn as_any(&self) -> &dyn Any {
-    self
+  fn repo(&self) -> &Repo {
+    &self.repo
   }
 }

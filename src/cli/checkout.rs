@@ -23,9 +23,9 @@ pub fn cmd_checkout(opts: &Checkout) -> Result<(), String> {
   let mut object = read(repo.clone(), &opts.object, None)?;
 
   // Parse the commit object into a tree.
-  if object.get_format().eq("commit") {
+  if object.format().eq("commit") {
     let commit = object.unbox::<Commit>()?;
-    let tree_hash = commit.map.map.get("tree").unwrap();
+    let tree_hash = commit.map.get("tree").unwrap();
     object = read(repo.clone(), tree_hash, Some("tree"))?;
   }
 
@@ -51,18 +51,18 @@ pub fn cmd_checkout(opts: &Checkout) -> Result<(), String> {
 }
 
 fn tree_checkout(repo: &Repo, tree: &Tree, path: &Path) -> Result<(), String> {
-  for item in tree.entries.iter() {
+  for item in tree.entries() {
     let obj = read(repo.clone(), &item.hash, None)?;
     let dest = path.join(item.path.as_str());
 
-    if obj.get_format().eq("tree") {
+    if obj.format().eq("tree") {
       if let Err(msg) = std::fs::create_dir_all(&dest) {
         return Err(format!("failed to create path {:?} ({})", &dest, msg));
       }
       let tree = obj.unbox::<Tree>()?;
       tree_checkout(repo, &tree, &dest)?;
-    } else if obj.get_format().eq("blob") {
-      if let Err(msg) = write(&dest, &obj.unbox::<Blob>()?.data) {
+    } else if obj.format().eq("blob") {
+      if let Err(msg) = write(&dest, &obj.unbox::<Blob>()?.data()) {
         return Err(format!("failed to write file {:?} ({})", &dest, msg));
       }
     }

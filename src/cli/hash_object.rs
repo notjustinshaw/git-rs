@@ -3,8 +3,10 @@ use std::{fs, path::PathBuf, str::FromStr};
 use clap::Args;
 
 use crate::object::blob::Blob;
-use crate::object::object::Object;
+use crate::object::commit::Commit;
 use crate::object::serializable::Serializable;
+use crate::object::tag::Tag;
+use crate::object::tree::Tree;
 use crate::object::write;
 use crate::repo::Repo;
 
@@ -13,7 +15,7 @@ use crate::repo::Repo;
 /// Converts a file into object form. The file contents are compressed and
 /// stored on the filesystem with an object header. The header contains some
 /// simple information about the object such as the object type and its size.
-/// 
+///
 /// ### Example
 /// ```bash
 /// $ git hash-object hello.txt
@@ -70,9 +72,9 @@ pub fn cmd_hash_object(opts: &HashObject) -> Result<(), String> {
   if let Ok(file) = fs::read(path) {
     let obj: Box<dyn Serializable> = match opts.typename.as_str() {
       "blob" => Box::new(Blob::new(repo, &file)),
-      "commit" => Box::new(Object::new(repo, "commit")),
-      "tag" => Box::new(Object::new(repo, "tag")),
-      "tree" => Box::new(Object::new(repo, "tree")),
+      "commit" => Box::new(Commit::new(repo, &file)),
+      "tag" => Box::new(Tag::new(repo, &file)),
+      "tree" => Box::new(Tree::new(repo, &file)),
       _ => return Err(format!("unsupported type \"{}\"", opts.typename)),
     };
     println!("{}", write(&obj, !opts.write)?);
