@@ -1,13 +1,14 @@
+
+use crate::repo::{repo_dir, Repo};
 use std::collections::BTreeMap;
 use std::{
   fs,
   path::{Path, PathBuf},
 };
 
-use crate::repo::{repo_dir, Repo};
 
 /// Resolves a ref path to an object hash.
-/// 
+///
 /// A ref associates a name to a particular git object. Refs can either be
 /// direct or indirect. A direct ref is a file where the name of the file is the
 /// name of the ref and the data in the file is the SHA-1 hash of the object
@@ -36,7 +37,7 @@ pub fn resolve(repo: &Repo, refr: &Path) -> Result<String, String> {
 }
 
 /// Collects refs and returns them as an ordered dictionary.
-/// 
+///
 /// Starts in the `.git/refs` directory and recursively builds up a map between
 /// paths and ref hashes. The paths are stored in a prefixed form starting with
 /// `refs/` and each ref is resolved into a hash before being stored.

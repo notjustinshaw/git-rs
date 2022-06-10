@@ -2,31 +2,31 @@ use std::any::Any;
 
 use crate::repo::Repo;
 
-use super::{git_object::GitObject, serializable::Serializable, Object};
+use super::{serializable::Serializable, Object, mail_map::MailMap};
 
 pub struct Commit {
   pub object: Object,
-  pub gob: GitObject,
+  pub map: MailMap,
 }
 
 impl Commit {
   pub fn new(repo: Repo, data: &[u8]) -> Self {
-    let mut gob = GitObject::new();
-    gob.from_bytes(data, 0);
+    let mut map = MailMap::new();
+    map.from_bytes(data, 0);
     Self {
       object: Object::new(repo, "commit"),
-      gob,
+      map,
     }
   }
 }
 
 impl Serializable for Commit {
   fn serialize(&self) -> &[u8] {
-    return &self.gob.to_bytes();
+    return &self.map.to_bytes();
   }
 
   fn deserialize(&mut self, data: &[u8]) {
-    self.gob.from_bytes(data, 0);
+    self.map.from_bytes(data, 0);
   }
 
   fn get_format(&self) -> &str {

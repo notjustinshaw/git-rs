@@ -51,7 +51,7 @@ fn print_commit(repo: Repo, hash: String, seen: &mut HashSet<String>) -> Result<
     None => return Err(format!("downcast to commit failed")),
   };
 
-  let map: &IndexMap<String, String> = &commit.gob.map;
+  let map: &IndexMap<String, String> = &commit.map.map;
   if !map.contains_key("parent") {
     // base case - the initial commit has no parent
     return Ok(());

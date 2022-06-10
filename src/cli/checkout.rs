@@ -25,7 +25,7 @@ pub fn cmd_checkout(opts: &Checkout) -> Result<(), String> {
   // Parse the commit object into a tree.
   if object.get_format().eq("commit") {
     let commit = object.unbox::<Commit>()?;
-    let tree_hash = commit.gob.map.get("tree").unwrap();
+    let tree_hash = commit.map.map.get("tree").unwrap();
     object = read(repo.clone(), tree_hash, Some("tree"))?;
   }
 

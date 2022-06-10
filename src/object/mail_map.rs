@@ -69,49 +69,67 @@ impl MailMap {
     match (maybe_space, maybe_newln) {
       (_any, Some(newline)) if newline <= maybe_space.unwrap_or(newline) => {
         assert_eq!(newline, offset);
-        let key = String::from("");
-        let value = String::from_utf8(raw[offset + 1..].to_vec()).unwrap();
-        self.map.entry(key).or_insert(value);
+        extract_message(&raw[offset + 1..], &mut self.map);
       }
       (None, None) => (), // reached the end of the raw data
       _ => {
         let space = maybe_space.unwrap(); // shouldn't panic
-        let key = String::from_utf8(raw[offset..space].to_vec()).unwrap();
-        let mut end = offset;
-        loop {
-          end = raw.find(b'\n', end + 1).unwrap(); // probably won't panic
-          if raw[end + 1] != b' ' {
-            break;
-          }
-        }
-        let value = String::from_utf8(raw[space + 1..end].to_vec()).unwrap();
-        self.map.entry(key).or_insert(value.replace("\n ", "\n"));
-        self.from_bytes(raw, end + 1);
+        let next_offset = extract_entry(&raw[offset..], space, &mut self.map);
+        self.from_bytes(raw, next_offset);
       }
     }
 
-    // Walk through the map and build out the file as a string
-    let mut result = String::from("");
-
-    // append the fields (key-value pairs)
-    for key in self.map.keys() {
-      if key == "" {
-        continue;
-      }
-      let value = self.map.get(key).unwrap();
-      result.push_str(key);
-      result.push_str(" ");
-      result.push_str(&value.replace("\n", "\n "));
-      result.push_str("\n");
-    }
-
-    // append the message (the key of the message is the empty string)
-    result.push_str(self.map.get("").unwrap());
-
-    self.data = result.into_bytes();
+    self.data = map_to_bytes(&self.map);
   }
 
   pub fn to_bytes(&self) -> &[u8] {
     return self.data.as_slice();
   }
+}
+
+/// After a blank line, the rest of the file is an optional message.
+fn extract_message(bytes: &[u8], map: &mut IndexMap<String, String>) {
+  let key = String::from("");
+  let value = String::from_utf8(bytes.to_vec()).expect("invalid value");
+  map.entry(key).or_insert(value);
+}
+
+/// Pulls out a single key, value pair from the file.
+///
+/// The key and value are separated by a space, and the value may span multiple
+/// lines. The continuation lines must be indented by a space and the space is
+/// not part of the continuation line (ie. it must be removed).
+fn extract_entry(bytes: &[u8], space: usize, map: &mut IndexMap<String, String>) -> usize {
+  // find the first `\n` that is not followed by a space character
+  let mut end = bytes.find(b'\n', 1).unwrap();
+  while bytes[end + 1] == b' ' {
+    end = bytes.find(b'\n', end + 1).unwrap() // try again
+  }
+
+  let key = String::from_utf8(bytes[..space].to_vec()).expect("invalid key");
+  let value = String::from_utf8(bytes[space + 1..end].to_vec()).expect("invalid value");
+
+  map.entry(key).or_insert(value.replace("\n ", "\n"));
+  end
+}
+
+/// Walk through the map and build up a byte vector.
+fn map_to_bytes(map: &IndexMap<String, String>) -> Vec<u8> {
+  let mut result = String::from("");
+
+  // append the fields (key-value pairs)
+  for key in map.keys() {
+    if key != "" {
+      let value = map.get(key).unwrap();
+      result.push_str(key);
+      result.push_str(" ");
+      result.push_str(&value.replace("\n", "\n "));
+      result.push_str("\n");
+    }
+  }
+
+  // append the message (the key of the message is the empty string)
+  result.push_str(map.get("").unwrap());
+
+  result.into_bytes()
 }

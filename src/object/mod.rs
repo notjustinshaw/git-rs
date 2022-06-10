@@ -1,12 +1,13 @@
 pub(crate) mod blob;
 pub(crate) mod commit;
 pub(crate) mod findable;
-pub(crate) mod git_object;
+pub(crate) mod mail_map;
 pub(crate) mod mode;
 pub(crate) mod object;
-pub(crate) mod serializable;
-pub(crate) mod tree;
 pub(crate) mod refs;
+pub(crate) mod serializable;
+mod tag;
+pub(crate) mod tree;
 
 use crate::crypto;
 use crate::object::blob::Blob;
@@ -18,6 +19,8 @@ use crate::object::tree::Tree;
 use crate::repo::{repo_file, Repo};
 use std::fs::{self, File};
 use std::io::prelude::*;
+
+use self::tag::Tag;
 
 /// A git object.
 ///
@@ -84,8 +87,8 @@ pub fn read(
     match object_type {
       "blob" => Ok(Box::new(Blob::new(repo, &payload))),
       "commit" => Ok(Box::new(Commit::new(repo, &payload))),
+      "tag" => Ok(Box::new(Tag::new(repo, &payload))),
       "tree" => Ok(Box::new(Tree::new(repo, &payload))),
-      "tag" => Ok(Box::new(Object::new(repo, "tag"))),
       _ => Err(format!("unsupported type \"{}\"", object_type)),
     }
   } else {
