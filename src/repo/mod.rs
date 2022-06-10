@@ -231,7 +231,7 @@ pub fn repo_file(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> 
 
 /// Computes path under repo's git directory, and creates the directory if
 /// it does not exist.
-fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
+pub fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
   // If the directory does not exist, create it.
   let path = repo_path(root, path);
   if path.exists() {

@@ -25,9 +25,10 @@ use merge::Merge;
 use rebase::Rebase;
 use rev_parse::RevParse;
 use rm::Rm;
-use show_ref::ShowRef;
 use show_tree::ShowTree;
 use tag::Tag;
+
+use self::show_ref::ShowRef;
 
 /// the rusty content tracker
 ///

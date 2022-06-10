@@ -6,6 +6,7 @@ pub(crate) mod mode;
 pub(crate) mod object;
 pub(crate) mod serializable;
 pub(crate) mod tree;
+pub(crate) mod refs;
 
 use crate::crypto;
 use crate::object::blob::Blob;
