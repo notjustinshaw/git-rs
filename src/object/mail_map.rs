@@ -114,7 +114,7 @@ fn extract_entry(bytes: &[u8], space: usize, map: &mut IndexMap<String, String>)
 }
 
 /// Walk through the map and build up a byte vector.
-fn map_to_bytes(map: &IndexMap<String, String>) -> Vec<u8> {
+pub fn map_to_bytes(map: &IndexMap<String, String>) -> Vec<u8> {
   let mut result = String::from("");
 
   // append the fields (key-value pairs)

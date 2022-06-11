@@ -1,11 +1,9 @@
-
 use crate::repo::{repo_dir, Repo};
 use std::collections::BTreeMap;
 use std::{
   fs,
   path::{Path, PathBuf},
 };
-
 
 /// Resolves a ref path to an object hash.
 ///
@@ -17,8 +15,12 @@ use std::{
 /// which represents the path to another ref (which might, in turn, point at
 /// another indirect ref). Indirect refs must be recursively resolves.
 pub fn resolve(repo: &Repo, refr: &Path) -> Result<String, String> {
-  let path: PathBuf = PathBuf::from(refr);
-  match fs::read(path) {
+  let path: PathBuf = if refr.starts_with(&repo.git_dir) {
+    PathBuf::from(refr)
+  } else {
+    repo.git_dir.join(refr)
+  };
+  match fs::read(&path) {
     Ok(data) => {
       if data.starts_with("ref: ".as_bytes()) {
         // indirect ref stores a plain-text path to another ref (ie. recursive)
@@ -32,7 +34,7 @@ pub fn resolve(repo: &Repo, refr: &Path) -> Result<String, String> {
         return Ok(String::from_utf8(object_hash).unwrap());
       }
     }
-    Err(msg) => Err(format!("{}", msg)),
+    Err(msg) => Err(format!("{} {}", &path.to_string_lossy(), msg)),
   }
 }
 

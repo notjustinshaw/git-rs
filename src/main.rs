@@ -38,7 +38,7 @@ fn main() {
     Command::RevParse(_) => cmd_rev_parse(),
     Command::Rm(_) => cmd_rm(),
     Command::ShowRef(_) => cmd_show_ref(),
-    Command::Tag(_) => cmd_tag(),
+    Command::Tag(opts) => cmd_tag(opts),
   };
 
   // handle the response type if it errored out
