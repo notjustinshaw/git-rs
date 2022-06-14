@@ -78,19 +78,19 @@ pub fn read(
       .unwrap();
 
     if object_size != raw.len() - null_byte - 1 {
-      return Err(format!("size does not match size of raw data"));
+      return Err("size does not match size of raw data".to_string());
     }
 
     let payload = &raw[null_byte + 1..];
     match object_type {
-      "blob" => Ok(Box::new(Blob::new(repo, &payload))),
-      "commit" => Ok(Box::new(Commit::new(repo, &payload))),
-      "tag" => Ok(Box::new(Tag::new(repo, &payload))),
-      "tree" => Ok(Box::new(Tree::new(repo, &payload))),
+      "blob" => Ok(Box::new(Blob::new(repo, payload))),
+      "commit" => Ok(Box::new(Commit::new(repo, payload))),
+      "tag" => Ok(Box::new(Tag::new(repo, payload))),
+      "tree" => Ok(Box::new(Tree::new(repo, payload))),
       _ => Err(format!("unsupported type \"{}\"", object_type)),
     }
   } else {
-    Err(format!("object not found"))
+    Err("object not found".to_string())
   }
 }
 
@@ -99,7 +99,7 @@ pub fn read(
 /// The object is written to the repository that the object represents. If the
 /// dry_run flag is set to true, the hash will be calculated but not written
 /// to the directory.
-pub fn write(object: &Box<dyn Serializable>, dry_run: bool) -> Result<String, String> {
+pub fn write(object: &dyn Serializable, dry_run: bool) -> Result<String, String> {
   let payload = object.serialize();
   let header = format!("{} {}\0", object.format(), payload.len());
   let data = [header.as_bytes(), payload].concat();
@@ -112,10 +112,10 @@ pub fn write(object: &Box<dyn Serializable>, dry_run: bool) -> Result<String, St
     let compressed_data = crypto::compress(&data)?;
     file.write_all(&compressed_data[..]).unwrap();
   }
-  return Ok(hash);
+  Ok(hash)
 }
 
 /// Finds object.
 pub fn find_object<'a>(_repo: Repo, name: &'a str, _type: Option<&str>, _follow: bool) -> &'a str {
-  return name;
+  name
 }

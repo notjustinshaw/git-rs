@@ -18,6 +18,6 @@ impl Findable for [u8] {
         return Some(i);
       }
     }
-    return None;
+    None
   }
 }

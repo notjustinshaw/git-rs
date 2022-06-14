@@ -31,8 +31,8 @@ fn init_template(path: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
   // set the current directory and run `git-rs init`
   cmd.current_dir(&canonical_path);
   cmd.arg("init");
-  if path.is_some() {
-    cmd.arg(path.unwrap());
+  if let Some(p) = path {
+    cmd.arg(p);
   }
 
   // verify the module works as expected
@@ -43,8 +43,8 @@ fn init_template(path: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
   assert!(!is_empty_directory(&canonical_path));
 
   // verify the `.git` directory is correct
-  let git_dir = if path.is_some() {
-    canonical_path.join(path.unwrap()).join(".git")
+  let git_dir = if let Some(p) = path {
+    canonical_path.join(p).join(".git")
   } else {
     canonical_path.join(".git")
   };

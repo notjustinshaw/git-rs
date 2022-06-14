@@ -26,9 +26,9 @@ pub struct CatFile {
 pub fn cmd_cat_file(opts: &CatFile) -> Result<(), String> {
   if let Some(repo) = Repo::find_repo(&PathBuf::from("."), true)? {
     let gob = read(repo, &opts.object, Some(&opts.typename))?;
-    print!("{}", String::from_utf8_lossy(gob.serialize()).to_string());
+    print!("{}", String::from_utf8_lossy(gob.serialize()));
     Ok(())
   } else {
-    Err(format!("repository not found"))
+    Err("repository not found".to_string())
   }
 }

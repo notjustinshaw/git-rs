@@ -24,7 +24,7 @@ impl Blob {
 
 impl Serializable for Blob {
   fn serialize(&self) -> &[u8] {
-    return &self.data;
+    &self.data
   }
 
   fn deserialize(&mut self, data: &[u8]) {

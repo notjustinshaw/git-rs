@@ -4,7 +4,7 @@ use ini::Ini as ConfigParser;
 use std::{
   fs::{create_dir_all, File},
   io::Write,
-  path::PathBuf,
+  path::{PathBuf, Path},
 };
 
 /// A git repository.
@@ -33,7 +33,7 @@ impl Repo {
   /// * `path` - The path to the working tree.
   /// * `force` - If true, the repository will be created even from an invalid
   /// filesystem location.
-  pub fn init(path: &PathBuf, force: bool) -> Result<Repo, String> {
+  pub fn init(path: &Path, force: bool) -> Result<Repo, String> {
     // If we are not forcing creation, the path must exist.
     if !force && !path.exists() {
       return Err(format!("{} does not exist.", path.display()));
@@ -50,7 +50,7 @@ impl Repo {
             Err(error) => return Err(error.to_string()),
           };
         } else if !force {
-          return Err(format!("Configuration file is missing."));
+          return Err("Configuration file is missing.".to_string());
         }
       }
       None => {
@@ -92,7 +92,7 @@ impl Repo {
   /// # Arguments
   ///
   /// * `path` - The path to the repository.
-  pub fn new(path: &PathBuf) -> Result<Repo, String> {
+  pub fn new(path: &Path) -> Result<Repo, String> {
     let repo = Repo::init(path, true)?;
 
     // First, make sure the path either doesn't exist or is an empty directory.
@@ -104,10 +104,8 @@ impl Repo {
       if repo.work_tree.read_dir().unwrap().count() != 0 {
         return Err(format!("{} is not empty", dir));
       }
-    } else {
-      if !create_dir_all(&repo.work_tree).is_ok() {
-        panic!("failed to create {}", repo.work_tree.display());
-      }
+    } else if create_dir_all(&repo.work_tree).is_err() {
+      panic!("failed to create {}", repo.work_tree.display());
     }
 
     // Verify that the repository has been successfully created.
@@ -131,17 +129,17 @@ impl Repo {
     let path = repo_file(&repo.git_dir, &["config"], true);
     config.write_to_file(path.unwrap()).unwrap();
 
-    return Ok(repo);
+    Ok(repo)
   }
 
   /// Create a new repo object from an existing repository.
-  pub fn from_existing(path: &PathBuf) -> Result<Repo, String> {
+  pub fn from_existing(path: &Path) -> Result<Repo, String> {
     let repo = Repo::init(path, false)?;
-    return Ok(repo);
+    Ok(repo)
   }
 
   /// Walk up the directory tree to find the root of the repository (`.git`).
-  pub fn find_repo(path: &PathBuf, required: bool) -> Result<Option<Repo>, String> {
+  pub fn find_repo(path: &Path, required: bool) -> Result<Option<Repo>, String> {
     // Shadow the path parameter with its absolute path.
     let path = path.canonicalize().unwrap();
 
@@ -155,12 +153,12 @@ impl Repo {
 
     // Otherwise, we need to walk up the directory tree.
     match path.parent() {
-      Some(parent) => return Repo::find_repo(&parent.to_path_buf(), required),
+      Some(parent) => Repo::find_repo(parent, required),
       None => {
         if required {
-          return Err("Could not find a git directory".to_string());
+          Err("Could not find a git directory".to_string())
         } else {
-          return Ok(None);
+          Ok(None)
         }
       }
     }
@@ -202,10 +200,10 @@ impl Default for Repo {
 }
 
 /// Returns a new PathBuf with the given path appended to the given pathbuf.
-fn repo_path(git_dir: &PathBuf, paths: &[&str]) -> PathBuf {
-  let mut new_path = git_dir.clone();
-  new_path.extend(paths.into_iter());
-  return new_path;
+fn repo_path(git_dir: &Path, paths: &[&str]) -> PathBuf {
+  let mut new_path = git_dir.to_path_buf();
+  new_path.extend(paths.iter());
+  new_path
 }
 
 /// Computes path under repo's git directory, and creates the directory if
@@ -216,7 +214,7 @@ fn repo_path(git_dir: &PathBuf, paths: &[&str]) -> PathBuf {
 /// repo_file(r, "refs", "remotes", "origin", "HEAD")
 /// ```
 /// will create `.git/refs/remotes/origin` if it does not exist.
-pub fn repo_file(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
+pub fn repo_file(root: &Path, path: &[&str], mkdir: bool) -> Option<PathBuf> {
   match repo_dir(root, &path[..path.len() - 1], mkdir) {
     Some(file_path) => {
       if file_path.exists() {
@@ -231,7 +229,7 @@ pub fn repo_file(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> 
 
 /// Computes path under repo's git directory, and creates the directory if
 /// it does not exist.
-pub fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
+pub fn repo_dir(root: &Path, path: &[&str], mkdir: bool) -> Option<PathBuf> {
   // If the directory does not exist, create it.
   let path = repo_path(root, path);
   if path.exists() {
@@ -245,8 +243,8 @@ pub fn repo_dir(root: &PathBuf, path: &[&str], mkdir: bool) -> Option<PathBuf> {
   // The path does not exist; create it if we are allowed to.
   if mkdir {
     create_dir_all(&path).unwrap();
-    return Some(path);
+    Some(path)
   } else {
-    return None;
+    None
   }
 }

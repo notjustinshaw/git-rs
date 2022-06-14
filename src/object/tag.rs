@@ -33,8 +33,8 @@ impl Tag {
       map: MailMap::new(),
       repo,
     };
-    new_tag.map.from_bytes(data, 0);
-    return new_tag;
+    new_tag.map.parse_bytes(data, 0);
+    new_tag
   }
 }
 
@@ -52,7 +52,7 @@ impl Serializable for Tag {
   }
 
   fn deserialize(&mut self, data: &[u8]) {
-    self.map.from_bytes(data, 0)
+    self.map.parse_bytes(data, 0)
   }
 
   fn format(&self) -> &String {

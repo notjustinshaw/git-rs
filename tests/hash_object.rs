@@ -52,8 +52,8 @@ fn hash_object_template(
   // set the current directory and run `git-rs hash-object`
   hash_cmd.current_dir(&canonical_path);
   hash_cmd.arg("hash-object").arg(filename);
-  if obj.is_some() {
-    hash_cmd.arg(obj.unwrap());
+  if let Some(a) = obj {
+    hash_cmd.arg(a);
   }
   if write {
     hash_cmd.arg("--write");
@@ -61,7 +61,7 @@ fn hash_object_template(
 
   // Add the file to be hash-object'ed
   let mut f = File::create(&canonical_path.join(filename))?;
-  f.write(plaintext_data.as_bytes())?;
+  f.write_all(plaintext_data.as_bytes())?;
   f.flush()?;
 
   // verify the module works as expected
@@ -71,17 +71,19 @@ fn hash_object_template(
     .stdout(predicate::str::contains(hash));
 
   // set command config
-  if write && obj.is_some() {
-    let mut cat_cmd = Command::cargo_bin("git-rs")?;
+  if write {
+    if let Some(o) = obj {
+      let mut cat_cmd = Command::cargo_bin("git-rs")?;
 
-    cat_cmd.current_dir(&canonical_path);
-    cat_cmd.arg("cat-file").arg(obj.unwrap()).arg(hash);
+      cat_cmd.current_dir(&canonical_path);
+      cat_cmd.arg("cat-file").arg(o).arg(hash);
 
-    // verify the module works as expected
-    cat_cmd
-      .assert()
-      .success()
-      .stdout(predicate::str::contains(plaintext_data));
+      // verify the module works as expected
+      cat_cmd
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(plaintext_data));
+    }
   }
 
   Ok(())

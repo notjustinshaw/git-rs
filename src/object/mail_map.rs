@@ -60,7 +60,7 @@ impl MailMap {
     }
   }
 
-  pub fn from_bytes(&mut self, raw: &[u8], offset: usize) {
+  pub fn parse_bytes(&mut self, raw: &[u8], offset: usize) {
     // Search for the next space and newline.
     let maybe_space = raw.find(b' ', offset);
     let maybe_newln = raw.find(b'\n', offset);
@@ -75,7 +75,7 @@ impl MailMap {
       _ => {
         let space = maybe_space.unwrap(); // shouldn't panic
         let next_offset = extract_entry(&raw[offset..], space, &mut self.map);
-        self.from_bytes(raw, next_offset);
+        self.parse_bytes(raw, next_offset);
       }
     }
 
@@ -83,7 +83,7 @@ impl MailMap {
   }
 
   pub fn to_bytes(&self) -> &[u8] {
-    return self.data.as_slice();
+    self.data.as_slice()
   }
 }
 
@@ -119,12 +119,12 @@ pub fn map_to_bytes(map: &IndexMap<String, String>) -> Vec<u8> {
 
   // append the fields (key-value pairs)
   for key in map.keys() {
-    if key != "" {
+    if !key.is_empty() {
       let value = map.get(key).unwrap();
       result.push_str(key);
-      result.push_str(" ");
-      result.push_str(&value.replace("\n", "\n "));
-      result.push_str("\n");
+      result.push(' ');
+      result.push_str(&value.replace('\n', "\n "));
+      result.push('\n');
     }
   }
 

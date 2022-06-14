@@ -38,7 +38,7 @@ impl Tree {
       repo,
     };
     new_tree.deserialize(data);
-    return new_tree;
+    new_tree
   }
 
   pub fn entries(&self) -> &Vec<TreeEntry> {
@@ -48,7 +48,7 @@ impl Tree {
 
 impl Serializable for Tree {
   fn serialize(&self) -> &[u8] {
-    return &self.bytes;
+    &self.bytes
   }
 
   fn deserialize(&mut self, data: &[u8]) {
@@ -106,7 +106,7 @@ impl TreeEntry {
     let path = String::from_utf8(raw[space + 1..null].to_vec()).unwrap();
 
     // Read out the hash and convert it to a hex string (20 bytes)
-    let hash = hex::encode(raw[null + 1..null + 21].to_vec());
+    let hash = hex::encode(&raw[null + 1..null + 21]);
     let len = null + 21 - offset;
     Self {
       mode,

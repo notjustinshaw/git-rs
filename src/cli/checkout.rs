@@ -42,11 +42,11 @@ pub fn cmd_checkout(opts: &Checkout) -> Result<(), String> {
   if !path.is_dir() {
     return Err(format!("{} is not a directory", opts.path));
   }
-  if !path.read_dir().unwrap().next().is_none() {
+  if path.read_dir().unwrap().next().is_some() {
     return Err(format!("{} is not empty", opts.path));
   }
 
-  tree_checkout(&repo, &tree, path)?;
+  tree_checkout(&repo, tree, path)?;
   Ok(())
 }
 
@@ -60,7 +60,7 @@ fn tree_checkout(repo: &Repo, tree: &Tree, path: &Path) -> Result<(), String> {
         return Err(format!("failed to create path {:?} ({})", &dest, msg));
       }
       let tree = obj.unbox::<Tree>()?;
-      tree_checkout(repo, &tree, &dest)?;
+      tree_checkout(repo, tree, &dest)?;
     } else if obj.format().eq("blob") {
       if let Err(msg) = write(&dest, &obj.unbox::<Blob>()?.data()) {
         return Err(format!("failed to write file {:?} ({})", &dest, msg));

@@ -17,8 +17,8 @@ impl Commit {
       map: MailMap::new(),
       repo,
     };
-    new_commit.map.from_bytes(data, 0);
-    return new_commit;
+    new_commit.map.parse_bytes(data, 0);
+    new_commit
   }
 }
 
@@ -34,9 +34,9 @@ impl Serializable for Commit {
   fn serialize(&self) -> &[u8] {
     self.map.to_bytes()
   }
-  
+
   fn deserialize(&mut self, data: &[u8]) {
-    self.map.from_bytes(data, 0)
+    self.map.parse_bytes(data, 0)
   }
 
   fn format(&self) -> &String {

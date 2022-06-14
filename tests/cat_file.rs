@@ -46,7 +46,7 @@ fn cat_file_template(
   let dir_path = &canonical_path.join(".git").join("objects").join(&hash[..2]);
   fs::create_dir(&dir_path)?;
   let mut f = File::create(&dir_path.join(&hash[2..]))?;
-  f.write(compressed_data)?;
+  f.write_all(compressed_data)?;
   f.flush()?;
 
   // verify the module works as expected

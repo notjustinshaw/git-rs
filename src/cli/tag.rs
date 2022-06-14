@@ -37,7 +37,7 @@ pub fn cmd_tag(opts: &Tag) -> Result<(), String> {
     let hash = create_annotated_tag(&repo, tag_name, &opts.object)?;
     create_simple_tag(&repo, tag_name, &hash);
   } else {
-    create_simple_tag(&repo, &opts.name.as_ref().unwrap(), &opts.object);
+    create_simple_tag(&repo, opts.name.as_ref().unwrap(), &opts.object);
   }
   Ok(())
 }
@@ -45,7 +45,7 @@ pub fn cmd_tag(opts: &Tag) -> Result<(), String> {
 /// Lists all tags in the given repository.
 fn list_all_tags(repo: &Repo) {
   let path_buf = repo_dir(&repo.git_dir, &["refs", "tags"], true).unwrap();
-  let refs = refs::collect(&repo, Some(path_buf.as_path()));
+  let refs = refs::collect(repo, Some(path_buf.as_path()));
   let prefix = Path::new("refs/tags/");
   for k in refs.keys() {
     let tag_name = Path::new(k).strip_prefix(prefix).expect("strip prefix");
@@ -58,12 +58,12 @@ fn create_simple_tag(repo: &Repo, name: &String, object: &String) {
   let mut file = File::create(path.join(name)).expect("create failed");
   if object.eq("HEAD") {
     let mut payload = refs::resolve(repo, &repo.git_dir.join("HEAD")).expect("resolve");
-    payload.push_str("\n");
-    file.write(payload.as_bytes()).expect("write failed");
+    payload.push('\n');
+    file.write_all(payload.as_bytes()).expect("write failed");
   } else {
     let mut payload: String = String::from(object);
     payload.push('\n');
-    file.write(payload.as_bytes()).expect("write failed");
+    file.write_all(payload.as_bytes()).expect("write failed");
   };
 }
 
@@ -77,5 +77,5 @@ fn create_annotated_tag(repo: &Repo, name: &String, object: &String) -> Result<S
     .insert("".to_owned(), "\n".to_owned());
   let payload = mail_map::map_to_bytes(&mail_map.map);
   let new_tag: Box<dyn Serializable> = Box::new(TagObject::new(repo.clone(), &payload));
-  object::write(&new_tag, false)
+  object::write(&*new_tag, false)
 }

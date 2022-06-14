@@ -25,13 +25,13 @@ pub fn resolve(repo: &Repo, refr: &Path) -> Result<String, String> {
       if data.starts_with("ref: ".as_bytes()) {
         // indirect ref stores a plain-text path to another ref (ie. recursive)
         match String::from_utf8(data[5..data.len() - 1].to_vec()) {
-          Ok(next_ref) => resolve(repo, &Path::new(&next_ref)),
+          Ok(next_ref) => resolve(repo, Path::new(&next_ref)),
           Err(msg) => Err(format!("unable to parse ref ({})", msg)),
         }
       } else {
         // direct ref is an utf8-encoded string of the object hash
         let object_hash = data[..data.len() - 1].to_vec(); // trim trailing \n
-        return Ok(String::from_utf8(object_hash).unwrap());
+        Ok(String::from_utf8(object_hash).unwrap())
       }
     }
     Err(msg) => Err(format!("{} {}", &path.to_string_lossy(), msg)),
@@ -47,23 +47,21 @@ pub fn collect(repo: &Repo, path: Option<&Path>) -> BTreeMap<String, String> {
   let default_path = repo_dir(&repo.git_dir, &["refs"], true).unwrap();
   let path = path.unwrap_or(&default_path);
   let mut map = BTreeMap::new();
-  for entry in path.read_dir().expect("unable to read dir") {
-    if let Ok(entry) = entry {
-      let entry_path = entry.path();
-      let new_path = path.join(&entry_path);
-      if entry.file_type().unwrap().is_dir() {
-        // build a map of the sub-directory, then flatten result into this map
-        let sub_map = collect(repo, Some(new_path.as_path()));
-        for pair in sub_map {
-          map.insert(pair.0, pair.1);
-        }
-      } else {
-        // resolve this ref, store the path suffix and its object hash
-        let path_suffix = entry_path.strip_prefix(&repo.git_dir);
-        let filename = path_suffix.unwrap().to_string_lossy().into_owned();
-        map.insert(filename, resolve(repo, new_path.as_path()).unwrap());
+  for entry in path.read_dir().expect("unable to read dir").flatten() {
+    let entry_path = entry.path();
+    let new_path = path.join(&entry_path);
+    if entry.file_type().unwrap().is_dir() {
+      // build a map of the sub-directory, then flatten result into this map
+      let sub_map = collect(repo, Some(new_path.as_path()));
+      for pair in sub_map {
+        map.insert(pair.0, pair.1);
       }
+    } else {
+      // resolve this ref, store the path suffix and its object hash
+      let path_suffix = entry_path.strip_prefix(&repo.git_dir);
+      let filename = path_suffix.unwrap().to_string_lossy().into_owned();
+      map.insert(filename, resolve(repo, new_path.as_path()).unwrap());
     }
   }
-  return map;
+  map
 }

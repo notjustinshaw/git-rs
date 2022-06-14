@@ -30,7 +30,7 @@ pub fn cmd_log(opts: &Log) -> Result<(), String> {
   let mut seen: HashSet<String> = HashSet::default();
   print_commit(
     repo.clone(),
-    find_object(repo.clone(), &opts.commit, None, false).to_string(),
+    find_object(repo, &opts.commit, None, false).to_string(),
     &mut seen,
   )?;
   Ok(())

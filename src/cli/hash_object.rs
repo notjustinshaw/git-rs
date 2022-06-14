@@ -77,9 +77,9 @@ pub fn cmd_hash_object(opts: &HashObject) -> Result<(), String> {
       "tree" => Box::new(Tree::new(repo, &file)),
       _ => return Err(format!("unsupported type \"{}\"", opts.typename)),
     };
-    println!("{}", write(&obj, !opts.write)?);
+    println!("{}", write(&*obj, !opts.write)?);
     Ok(())
   } else {
-    Err(format!("object not found"))
+    Err("object not found".to_string())
   }
 }

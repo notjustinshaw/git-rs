@@ -18,7 +18,7 @@ impl Unbox for Box<dyn Serializable> {
     let upcast_self: &dyn Any = self;
     match upcast_self.downcast_ref::<T>() {
       Some(cmt) => Ok(cmt),
-      None => Err(format!("downcast to commit failed")),
+      None => Err("downcast to commit failed".to_string()),
     }
   }
 }
