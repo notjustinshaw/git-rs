@@ -1,2 +1,1 @@
-# git.rs
-the rusty content tracker
+# https://notjustinshaw.github.io/git.rs
